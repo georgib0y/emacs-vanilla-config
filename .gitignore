@@ -3,3 +3,4 @@ eln-cache/
 backups/
 elpa/
 custom.el
+transient/
