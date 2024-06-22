@@ -1,18 +1,22 @@
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-
 ;; todo
-;;   - mess with gc stuff
+;;   - mess with more gc stuff
+
+;; set the cleanup thres to 10MB from 800K - done before packages are loaded in
+(setq gc-cons-threshold 10000000)
+
+
+;; file stuff
+;; move customise variables to their own file
+(let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
+  (setq custom-file customise-file)
+  (load customise-file t)) ;; create file if no exist
+
+(setq backup-directory-alist '(("." . "~/.config/emacs-vanilla/backups"))
+      backup-by-copying t ;; dont delink hardlinks
+      version-control t
+      delete-old-versions t
+      keep-new-versions 20
+      keep-old-versions 5)
 
 
 
@@ -24,33 +28,52 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
+(setq display-line-numbers 'relative)
 (global-display-line-numbers-mode t)
-(display-line-numbers 'visual)
 
-(load-theme 'wombat t)
+(global-hl-line-mode 1)
 
-(setq backup-directory-alist '(("." . "~/.config/emacs-vanilla/backups"))
-      backup-by-copying t ;; dont delink hardlinks
-      version-control t
-      delete-old-versions t
-      keep-new-versions 20
-      keep-old-versions 5)
+(load-theme 'deeper-blue t)
+
+(add-to-list 'default-frame-alist
+	     '(font . "NotoSansMono-14"))
+
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+
+
 
 ;; package stuff
 (require 'package)
 
 ;; slightly improves startup time apparently
 (setq package-enable-at-startup nil)
-(add-to-list 'package-archives '("melpha" . "https://melpha.org/packages"))
 
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+
+;; install use-pacakge if not already present
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package)
   (eval-when-compile (require 'use-package)))
 
-(setq package-always-ensure t)
+(use-package which-key
+  :ensure t
+  :config (which-key-mode))
 
-;; set the cleanup thres to 10MB from 800K - done before packages are loaded in
-(setq gc-cons-threshold 10000000)
 
+(use-package evil
+  :ensure t
+  :config
+  (evil-mode 1)
+  (setq evil-insert-state-cursor '(bar . 3)))
 
+(use-package magit
+  :ensure t
+  :config
+  (setq magit-define-global-bindings 'reccomended))
+
+;; my functions
+(defun my-goto-config ()
+  "Opens my init.el file"
+  (interactive)
+  (find-file user-init-file))

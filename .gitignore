@@ -1,3 +1,5 @@
 auto-save-list/
 eln-cache/
 backups/
+elpa/
+custom.el
