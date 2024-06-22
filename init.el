@@ -70,7 +70,9 @@
 (use-package magit
   :ensure t
   :config
-  (setq magit-define-global-bindings 'reccomended))
+  (setq magit-define-global-key-bindings 'recommended))
+
+(use-package 
 
 ;; my functions
 (defun my-goto-config ()
