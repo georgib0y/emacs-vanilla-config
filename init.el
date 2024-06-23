@@ -84,7 +84,7 @@
 	(cmake "https://github.com/uyha/tree-sitter-cmake")
 	(css "https://github.com/tree-sitter/tree-sitter-css")
 	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
-	(go "https://github.com/tree-sitter/tree-sitter-go")
+	(go "https://github.com/tree-sitter/tree-sitter-go" "v0.19.1")
 	(gomod "https://github.com/camdencheek/tree-sitter-go-mod")
 	(html "https://github.com/tree-sitter/tree-sitter-html")
 	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
@@ -92,6 +92,7 @@
 	(make "https://github.com/alemuller/tree-sitter-make")
 	(markdown "https://github.com/ikatyang/tree-sitter-markdown")
 	(python "https://github.com/tree-sitter/tree-sitter-python")
+	(rust "https://github.com/tree-sitter/tree-sitter-rust")
 	(toml "https://github.com/tree-sitter/tree-sitter-toml")
 	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
 	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
@@ -107,9 +108,18 @@
 	(yaml-mode . yaml-ts-mode)))
 
 ;; keeping this here for future reference, but gomod ts mode is not needed
-(add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-mod-ts-mode))
+
+(me/add-multiple-to-alists 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
+					      ("\\.go\\'" . go-ts-mode)
+					      ("\\.rs\\'" . rust-ts-mode)))
 
 ;; my functions
+(defun me/add-multiple-to-alists (alist to-add)
+  "Adds all items in to-add into alist"
+  (dolist (element to-add)
+    (add-to-list alist element)))
+  
+
 (defun me/goto-config ()
   "Opens my init.el file"
   (interactive)
