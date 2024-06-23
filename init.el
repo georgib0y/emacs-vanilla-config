@@ -73,10 +73,14 @@
   :config
   (setq magit-define-global-key-bindings 'recommended))
 
-
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown"))
 
 ;; language stuff
 (add-hook 'prog-mode-hook 'eglot-ensure)
+(add-hook 'typescript-ts-mode-hook 'eglot-ensure)
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (setq treesit-language-source-alist
@@ -104,14 +108,15 @@
 	(js2-mode . js-ts-mode)
 	(json-mode . json-ts-mode)
 	(python-mode . python-ts-mode)
-	(typescript-mode . typescript-ts-mode)
 	(yaml-mode . yaml-ts-mode)))
 
 ;; keeping this here for future reference, but gomod ts mode is not needed
 
 (me/add-multiple-to-alists 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
 					      ("\\.go\\'" . go-ts-mode)
-					      ("\\.rs\\'" . rust-ts-mode)))
+					      ("\\.rs\\'" . rust-ts-mode)
+					      ("\\.ts\\'" . typescript-ts-mode)))
+
 
 ;; my functions
 (defun me/add-multiple-to-alists (alist to-add)
