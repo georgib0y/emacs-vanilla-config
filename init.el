@@ -60,8 +60,9 @@
   :ensure t
   :config (which-key-mode))
 
-
 (use-package evil
+  :preface
+  (setq evil-want-C-u-scroll t)
   :ensure t
   :config
   (evil-mode 1)
@@ -72,10 +73,49 @@
   :config
   (setq magit-define-global-key-bindings 'recommended))
 
-(use-package 
+
+
+;; language stuff
+(add-hook 'prog-mode-hook 'eglot-ensure)
+
+;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
+(setq treesit-language-source-alist
+      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+	(cmake "https://github.com/uyha/tree-sitter-cmake")
+	(css "https://github.com/tree-sitter/tree-sitter-css")
+	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
+	(go "https://github.com/tree-sitter/tree-sitter-go")
+	(gomod "https://github.com/camdencheek/tree-sitter-go-mod")
+	(html "https://github.com/tree-sitter/tree-sitter-html")
+	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+	(json "https://github.com/tree-sitter/tree-sitter-json")
+	(make "https://github.com/alemuller/tree-sitter-make")
+	(markdown "https://github.com/ikatyang/tree-sitter-markdown")
+	(python "https://github.com/tree-sitter/tree-sitter-python")
+	(toml "https://github.com/tree-sitter/tree-sitter-toml")
+	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+
+(setq major-mode-remap-alist
+      '((bash-mode . bash-ts-mode)
+	(css-mode . css-ts-mode)
+	(js2-mode . js-ts-mode)
+	(json-mode . json-ts-mode)
+	(python-mode . python-ts-mode)
+	(typescript-mode . typescript-ts-mode)
+	(yaml-mode . yaml-ts-mode)))
+
+;; keeping this here for future reference, but gomod ts mode is not needed
+(add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-mod-ts-mode))
 
 ;; my functions
-(defun my-goto-config ()
+(defun me/goto-config ()
   "Opens my init.el file"
   (interactive)
   (find-file user-init-file))
+
+(defun me/install-all-treesiter-grammars ()
+  "Installs all treesitter grammars listed in treesit-language-source-alist"
+  (interactive)
+  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
