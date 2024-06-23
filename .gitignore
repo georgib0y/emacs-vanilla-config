@@ -4,3 +4,4 @@ backups/
 elpa/
 custom.el
 transient/
+tree-sitter/
