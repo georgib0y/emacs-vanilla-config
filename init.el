@@ -4,7 +4,6 @@
 ;; set the cleanup thres to 10MB from 800K - done before packages are loaded in
 (setq gc-cons-threshold 10000000)
 
-
 ;; file stuff
 ;; move customise variables to their own file
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
@@ -18,6 +17,22 @@
       keep-new-versions 20
       keep-old-versions 5)
 
+
+;; my functions
+(defun me/add-multiple-to-alists (alist to-add)
+  "Adds all items in to-add into alist"
+  (dolist (element to-add)
+    (add-to-list alist element)))
+
+(defun me/goto-config ()
+  "Opens my init.el file"
+  (interactive)
+  (find-file user-init-file))
+
+(defun me/install-all-treesiter-grammars ()
+  "Installs all treesitter grammars listed in treesit-language-source-alist"
+  (interactive)
+  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
 
 
 ;; ui stuff
@@ -118,19 +133,3 @@
 					      ("\\.ts\\'" . typescript-ts-mode)))
 
 
-;; my functions
-(defun me/add-multiple-to-alists (alist to-add)
-  "Adds all items in to-add into alist"
-  (dolist (element to-add)
-    (add-to-list alist element)))
-  
-
-(defun me/goto-config ()
-  "Opens my init.el file"
-  (interactive)
-  (find-file user-init-file))
-
-(defun me/install-all-treesiter-grammars ()
-  "Installs all treesitter grammars listed in treesit-language-source-alist"
-  (interactive)
-  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
