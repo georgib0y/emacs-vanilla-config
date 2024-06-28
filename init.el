@@ -34,6 +34,19 @@
   (interactive)
   (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
 
+;; (defun me/commit-and-push-conf (msg &optional branch)
+;;   "Commits the config to branch
+
+;; If branch is not specified it is set to what is currently checked out"
+;;   (interactive "sCommit Message: \nsBranch (Leave black for default):")
+;;   (unless (string-blank-p branch)
+;;     (print (concat "Branch is " branch)))
+;;   (magit-stage-file user-init-file)
+;;   (magit-commit-create (concat "-m " msg))
+;;   (magit-push-current-to-pushremote)
+;;   (print (concat "Message is " msg))
+  
+
 
 ;; ui stuff
 (setq inhibit-startup-screen t
@@ -124,8 +137,6 @@
 	(json-mode . json-ts-mode)
 	(python-mode . python-ts-mode)
 	(yaml-mode . yaml-ts-mode)))
-
-;; keeping this here for future reference, but gomod ts mode is not needed
 
 (me/add-multiple-to-alists 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
 					      ("\\.go\\'" . go-ts-mode)
