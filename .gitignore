@@ -6,3 +6,4 @@ custom.el
 transient/
 tree-sitter/
 tramp
+projectile*
