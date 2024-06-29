@@ -34,6 +34,13 @@
   (interactive)
   (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
 
+(defun me/sudo-open (path)
+  "Like `find-file' but opens as root"
+  (interactive "GFind file: ")
+  (find-file (concat "/sudo::" (file-truename path))))
+
+
+
 ;; (defun me/commit-and-push-conf (msg &optional branch)
 ;;   "Commits the config to branch
 
@@ -144,3 +151,7 @@
 					      ("\\.ts\\'" . typescript-ts-mode)))
 
 
+;; keybinds
+(global-set-key (kbd "C-c o c") 'me/goto-config)
+(global-set-key (kbd "C-c o s") 'me/sudo-open)
+(global-set-key (kbd "C-/") 'comment-line)
