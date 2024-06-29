@@ -75,7 +75,7 @@
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
-
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;; package stuff
 (require 'package)
@@ -125,9 +125,26 @@
   :init
   (ivy-mode))
 
+(use-package vterm
+  :ensure t
+  :bind ("C-c o t" . vterm))
+
+
 ;; language stuff
 (add-hook 'prog-mode-hook 'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook 'eglot-ensure)
+
+(defun me/eglot-format-on-save ()
+  (add-hook 'before-save-hook #'eglot-format-buffer))
+
+(add-hook 'prog-mode-hook #'me/eglot-format-on-save)
+(add-hook 'typescript-ts-mode-hook #'me/eglot-format-on-save)
+
+
+(defun me/ts-js-indent-setup ()
+  (setq tab-width 2))
+
+(add-hook 'typescript-ts-mode-hook #'me/ts-js-indent-setup)
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (setq treesit-language-source-alist
@@ -162,8 +179,18 @@
 					      ("\\.rs\\'" . rust-ts-mode)
 					      ("\\.ts\\'" . typescript-ts-mode)))
 
+;; add bracket autocomplete
+(add-hook 'prog-mode-hook #'electric-pair-mode)
+(add-hook 'typescript-ts-mode-hook #'electric-pair-mode)
+
+;; add colours to compilation out
+(add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
+
 
 ;; keybinds
 (global-set-key (kbd "C-c o c") 'me/goto-config)
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
 (global-set-key (kbd "C-/") 'comment-line)
+
+(global-set-key (kbd "C-c c") 'compile)
+(global-set-key (kbd "C-c C") 'recompile)
