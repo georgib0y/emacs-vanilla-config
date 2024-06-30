@@ -114,7 +114,7 @@
 
 (use-package markdown-mode
   :ensure t
-  :mode ("README\\.md\\'" . gfm-mode)
+  ;; :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package projectile
@@ -194,8 +194,10 @@
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
 (global-set-key (kbd "C-/") 'comment-line)
 
-(add-hook 'prog-mode
-	  (lambda () (local-set-key (kbd "C-c a") 'eglot-code-actions)))
+(defun me/eglot-mode-keybinds ()
+  (local-set-key (kbd "C-c a") 'eglot-code-actions))
+
+(add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
 
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
