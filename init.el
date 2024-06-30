@@ -63,10 +63,14 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
-(setq display-line-numbers 'relative)
 (global-display-line-numbers-mode t)
+(setq display-line-numbers-type 'relative)
+
+
 
 (global-hl-line-mode 1)
+
+
 
 (load-theme 'deeper-blue t)
 
@@ -131,15 +135,13 @@
 
 
 ;; language stuff
-(add-hook 'prog-mode-hook 'eglot-ensure)
-(add-hook 'typescript-ts-mode-hook 'eglot-ensure)
+(require 'eglot)
 
 (defun me/eglot-format-on-save ()
   (add-hook 'before-save-hook #'eglot-format-buffer))
 
+(add-hook 'prog-mode-hook 'eglot-ensure)
 (add-hook 'prog-mode-hook #'me/eglot-format-on-save)
-(add-hook 'typescript-ts-mode-hook #'me/eglot-format-on-save)
-
 
 (defun me/ts-js-indent-setup ()
   (setq tab-width 2))
@@ -192,5 +194,11 @@
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
 (global-set-key (kbd "C-/") 'comment-line)
 
+(add-hook 'prog-mode
+	  (lambda () (local-set-key (kbd "C-c a") 'eglot-code-actions)))
+
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
+
+
+;; (debug-on-variable-change 'display-line-numbers)
