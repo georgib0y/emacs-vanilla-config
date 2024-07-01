@@ -20,39 +20,25 @@
 
 ;; my functions
 (defun me/add-multiple-to-alists (alist to-add)
-  "Adds all items in to-add into alist"
+  "Add all items in TO-ADD into ALIST."
   (dolist (element to-add)
     (add-to-list alist element)))
 
 (defun me/goto-config ()
-  "Opens my init.el file"
+  "Opens my init.el file."
   (interactive)
   (find-file user-init-file))
 
-(defun me/install-all-treesiter-grammars ()
-  "Installs all treesitter grammars listed in treesit-language-source-alist"
-  (interactive)
-  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
 
 (defun me/sudo-open (path)
-  "Like `find-file' but opens as root"
+  "Like `find-file' but opens PATH as root."
   (interactive "GFind file: ")
   (find-file (concat "/sudo::" (file-truename path))))
 
-
-
-;; (defun me/commit-and-push-conf (msg &optional branch)
-;;   "Commits the config to branch
-
-;; If branch is not specified it is set to what is currently checked out"
-;;   (interactive "sCommit Message: \nsBranch (Leave black for default):")
-;;   (unless (string-blank-p branch)
-;;     (print (concat "Branch is " branch)))
-;;   (magit-stage-file user-init-file)
-;;   (magit-commit-create (concat "-m " msg))
-;;   (magit-push-current-to-pushremote)
-;;   (print (concat "Message is " msg))
-  
+(defun me/reload-file ()
+  "Reload a file."
+  (interactive)
+  (find-alternate-file buffer-file-name))
 
 
 ;; ui stuff
@@ -66,18 +52,22 @@
 (global-display-line-numbers-mode t)
 (setq display-line-numbers-type 'relative)
 
-
-
 (global-hl-line-mode 1)
 
-
-
-(load-theme 'deeper-blue t)
+(setq column-number-mode t)
 
 (add-to-list 'default-frame-alist
 	     '(font . "NotoSansMono-14"))
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
+
+(defun show-line-ruler ()
+  (setq display-fill-column-indicator t
+	display-fill-column-indicator-column 100
+	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
+  (display-fill-column-indicator-mode))
+
+(add-hook 'prog-mode #'show-line-ruler)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
@@ -133,15 +123,30 @@
   :ensure t
   :bind ("C-c o t" . vterm))
 
+(use-package doom-themes
+  :ensure t
+  :config
+  (setq doom-themes-enable-bold t
+	doom-themes-enable-italic t)
+  (load-theme 'doom-spacegrey)
+
+  (doom-themes-visual-bell-config)
+  (doom-themes-org-config))
+
 
 ;; language stuff
 (require 'eglot)
 
-(defun me/eglot-format-on-save ()
+(defun me/eglot-mode-setup ()
+  ;; dont enable eglot or flymake if in elisp mode
+  (unless (derived-mode-p 'emacs-lisp-mode)
+    (eglot-ensure)
+    (eglot-inlay-hints-mode nil)
+     (flymake-mode))
+   (electric-pair-mode)
   (add-hook 'before-save-hook #'eglot-format-buffer))
 
-(add-hook 'prog-mode-hook 'eglot-ensure)
-(add-hook 'prog-mode-hook #'me/eglot-format-on-save)
+(add-hook 'prog-mode-hook 'me/eglot-mode-setup)
 
 (defun me/ts-js-indent-setup ()
   (setq tab-width 2))
@@ -168,6 +173,11 @@
 	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
 	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
+(defun me/install-all-treesiter-grammars ()
+  "Install all treesitter grammars listed in `treesit-language-source-alist'."
+  (interactive)
+  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
+
 (setq major-mode-remap-alist
       '((bash-mode . bash-ts-mode)
 	(css-mode . css-ts-mode)
@@ -181,17 +191,16 @@
 					      ("\\.rs\\'" . rust-ts-mode)
 					      ("\\.ts\\'" . typescript-ts-mode)))
 
-;; add bracket autocomplete
-(add-hook 'prog-mode-hook #'electric-pair-mode)
-(add-hook 'typescript-ts-mode-hook #'electric-pair-mode)
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 
+
 ;; keybinds
 (global-set-key (kbd "C-c o c") 'me/goto-config)
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
+(global-set-key (kbd "C-c o r") 'me/reload-file)
 (global-set-key (kbd "C-/") 'comment-line)
 
 (defun me/eglot-mode-keybinds ()
