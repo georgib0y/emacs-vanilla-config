@@ -29,7 +29,6 @@
   (interactive)
   (find-file user-init-file))
 
-
 (defun me/sudo-open (path)
   "Like `find-file' but opens PATH as root."
   (interactive "GFind file: ")
@@ -40,6 +39,9 @@
   (interactive)
   (find-alternate-file buffer-file-name))
 
+(defun me/quick-switch-buffer ()
+  (interactive)
+  (switch-to-buffer nil))
 
 ;; ui stuff
 (setq inhibit-startup-screen t
@@ -137,11 +139,16 @@
 ;; language stuff
 (require 'eglot)
 
+(setq eglot-ignored-server-capabilities '(:inlayHintProvider))
+
+;; add clippy when using rust
+(add-to-list 'eglot-server-programs
+	     '(rust-ts-mode . ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
+
 (defun me/eglot-mode-setup ()
   ;; dont enable eglot or flymake if in elisp mode
   (unless (derived-mode-p 'emacs-lisp-mode)
     (eglot-ensure)
-    (eglot-inlay-hints-mode nil)
      (flymake-mode))
    (electric-pair-mode)
   (add-hook 'before-save-hook #'eglot-format-buffer))
@@ -202,9 +209,16 @@
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
 (global-set-key (kbd "C-c o r") 'me/reload-file)
 (global-set-key (kbd "C-/") 'comment-line)
+(global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 (defun me/eglot-mode-keybinds ()
-  (local-set-key (kbd "C-c a") 'eglot-code-actions))
+  (local-set-key (kbd "C-c a") 'eglot-code-actions)
+  (local-set-key (kbd "C-c d") 'xref-find-definitions)
+  (local-set-key (kbd "C-c r") 'eglot-rename))
+
+(define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
+(define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
+(define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
 
 (add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
 
