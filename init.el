@@ -29,6 +29,12 @@
   (interactive)
   (find-file user-init-file))
 
+(defun me/goto-bashrc ()
+  "Opens my .bashrc file."
+  (interactive)
+  (find-file "~/.bashrc"))
+
+
 (defun me/sudo-open (path)
   "Like `find-file' but opens PATH as root."
   (interactive "GFind file: ")
@@ -91,13 +97,17 @@
   :ensure t
   :config (which-key-mode))
 
-(use-package evil
-  :preface
-  (setq evil-want-C-u-scroll t)
-  :ensure t
-  :config
-  (evil-mode 1)
-  (setq evil-insert-state-cursor '(bar . 3)))
+;; (use-package evil
+;;   :preface
+;;   (setq evil-want-C-u-scroll t)
+;;   :ensure t
+;;   :init
+;;   (dolist (mode '(prog-mode-hook text-mode org-mode))
+;;     (add-hook mode #'evil-local-mode))
+;;   :config
+;;   ;; uncomment to enable evil in more places
+;;   ;; (evil-mode 1)
+;;   (setq evil-insert-state-cursor '(bar . 3)))
 
 (use-package magit
   :ensure t
@@ -206,9 +216,10 @@
 
 ;; keybinds
 (global-set-key (kbd "C-c o c") 'me/goto-config)
+(global-set-key (kbd "C-c o b") 'me/goto-bashrc)
 (global-set-key (kbd "C-c o s") 'me/sudo-open)
 (global-set-key (kbd "C-c o r") 'me/reload-file)
-(global-set-key (kbd "C-/") 'comment-line)
+;; (global-set-key (kbd "C-/") 'comment-line)
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 (defun me/eglot-mode-keybinds ()
@@ -216,14 +227,16 @@
   (local-set-key (kbd "C-c d") 'xref-find-definitions)
   (local-set-key (kbd "C-c r") 'eglot-rename))
 
+(add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
+
 (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
 (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
 (define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
 
-(add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
-
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
 
+;; defaults to shift-{l,r,u,d}
+(windmove-default-keybindings)
 
 ;; (debug-on-variable-change 'display-line-numbers)
