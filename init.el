@@ -160,8 +160,14 @@
   (unless (derived-mode-p 'emacs-lisp-mode)
     (eglot-ensure)
      (flymake-mode))
-   (electric-pair-mode)
+  (electric-pair-mode)
+  ;; disable pair mode in the minibuffer
   (add-hook 'before-save-hook #'eglot-format-buffer))
+
+(defun me/inhibit-electric-pair-mode (char)
+  (minibufferp))
+
+(setq electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode)
 
 (add-hook 'prog-mode-hook 'me/eglot-mode-setup)
 
