@@ -10,7 +10,7 @@
   (setq custom-file customise-file)
   (load customise-file t)) ;; create file if no exist
 
-(setq backup-directory-alist '(("." . "~/.config/emacs-vanilla/backups"))
+(setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
       backup-by-copying t ;; dont delink hardlinks
       version-control t
       delete-old-versions t
@@ -79,6 +79,8 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+(delete-selection-mode 1)
+
 ;; package stuff
 (require 'package)
 
@@ -144,6 +146,15 @@
 
   (doom-themes-visual-bell-config)
   (doom-themes-org-config))
+
+(use-package perspective
+  :ensure t
+  :bind
+  ("C-x C-b" . persp-ivy-switch-buffer)
+  :custom
+  (persp-mode-prefix-key (kbd "C-z"))
+  :init
+  (persp-mode))
 
 
 ;; language stuff
@@ -229,7 +240,7 @@
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 (defun me/eglot-mode-keybinds ()
-  (local-set-key (kbd "C-c a") 'eglot-code-actions)
+  (local-set-key (kbd "C-c a") 'eglot-code-actions) 
   (local-set-key (kbd "C-c d") 'xref-find-definitions)
   (local-set-key (kbd "C-c r") 'eglot-rename))
 
@@ -242,7 +253,11 @@
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
 
-;; defaults to shift-{l,r,u,d}
+(global-set-key (kbd "C-c C-d") 'duplicate-line)
+(global-set-key (kbd "C-c C-j") 'join-line)
+
+
+;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
 
 ;; (debug-on-variable-change 'display-line-numbers)
