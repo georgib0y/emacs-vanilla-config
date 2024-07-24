@@ -65,7 +65,7 @@
 (setq column-number-mode t)
 
 (add-to-list 'default-frame-alist
-	     '(font . "NotoSansMono-14"))
+	     '(font . "NotoSansMono-12"))
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
@@ -80,6 +80,7 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 
 (delete-selection-mode 1)
+
 
 ;; package stuff
 (require 'package)
@@ -156,6 +157,13 @@
   :init
   (persp-mode))
 
+(use-package yasnippet
+  :ensure t
+  :init
+  (yas-global-mode 1))
+
+(use-package yasnippet-snippets
+  :ensure t)
 
 ;; language stuff
 (require 'eglot)
@@ -182,10 +190,16 @@
 
 (add-hook 'prog-mode-hook 'me/eglot-mode-setup)
 
-(defun me/ts-js-indent-setup ()
+(defun me/ts-js-setup ()
   (setq tab-width 2))
 
-(add-hook 'typescript-ts-mode-hook #'me/ts-js-indent-setup)
+(add-hook 'typescript-ts-mode-hook #'me/ts-js-setup)
+
+(defun me/go-setup ()
+  (setq tab-width 4)
+  (setq go-ts-mode-indent-offset 4))
+
+(add-hook 'go-ts-mode-hook #'me/go-setup)
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (setq treesit-language-source-alist
@@ -256,6 +270,7 @@
 (global-set-key (kbd "C-c C-d") 'duplicate-line)
 (global-set-key (kbd "C-c C-j") 'join-line)
 
+(global-set-key (kbd "C-c s") 'yas-insert-snippet)
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
