@@ -77,8 +77,6 @@
 
 (add-hook 'prog-mode #'show-line-ruler)
 
-(defalias 'yes-or-no-p 'y-or-n-p)
-
 (delete-selection-mode 1)
 
 
