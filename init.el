@@ -3,6 +3,7 @@
 
 ;; set the cleanup thres to 10MB from 800K - done before packages are loaded in
 (setq gc-cons-threshold 10000000)
+(setq read-process-output-max (* 1024 1024)) ; 1mb
 
 ;; file stuff
 ;; move customise variables to their own file
@@ -149,7 +150,8 @@
 (use-package perspective
   :ensure t
   :bind
-  ("C-x C-b" . persp-ivy-switch-buffer)
+  ("C-x b" . persp-ivy-switch-buffer)
+  ("C-x C-b" . persp-buffer-menu)
   :custom
   (persp-mode-prefix-key (kbd "C-z"))
   :init
@@ -166,13 +168,42 @@
 ;; language stuff
 (add-hook 'org-mode-hook 'flyspell-mode)
 
-(require 'eglot)
+(defun me/lsp-mode-setup ()
+  ;; dont enable lsp-mode if in elisp mode
+  (unless (derived-mode-p 'emacs-lisp-mode)
+    (lsp)))
+    
+
+(use-package lsp-mode
+  :ensure t
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook
+  (prog-mode . me/lsp-mode-setup)
+  (lsp-mode . lsp-enable-which-key-integration)
+  (lsp-mode . electric-pair-mode)
+  (before-save . lsp-format-buffer)
+  ;; note the `*' after bind - overrides any minor mode keybinds
+  :bind*
+  ("M-n" . flycheck-next-error)
+  ("M-p" . flycheck-previous-error)
+  :commands lsp)
+
+(use-package lsp-ivy
+  :ensure t
+  :commands lsp-ivy-workspace-symbol)
+
+;; language stuff
+(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							 (js . t)
+							 (python . t)))
+
 
 (setq eglot-ignored-server-capabilities '(:inlayHintProvider))
 
 ;; add clippy when using rust
-(add-to-list 'eglot-server-programs
-	     '(rust-ts-mode . ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
+;; (add-to-list 'eglot-server-programs
+;; 	     '(rust-ts-mode . ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
 
 (defun me/eglot-mode-setup ()
   ;; dont enable eglot or flymake if in elisp mode
@@ -188,7 +219,7 @@
 
 (setq electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode)
 
-(add-hook 'prog-mode-hook 'me/eglot-mode-setup)
+;; (add-hook 'prog-mode-hook 'me/eglot-mode-setup)
 
 (defun me/ts-js-setup ()
   (setq tab-width 2))
@@ -219,7 +250,8 @@
 	(toml "https://github.com/tree-sitter/tree-sitter-toml")
 	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
 	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+	(yaml "https://github.com/ikatyang/tree-sitter-yaml")
+	(dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")))
 
 (defun me/install-all-treesiter-grammars ()
   "Install all treesitter grammars listed in `treesit-language-source-alist'."
@@ -237,32 +269,58 @@
 (me/add-multiple-to-alists 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
 					      ("\\.go\\'" . go-ts-mode)
 					      ("\\.rs\\'" . rust-ts-mode)
-					      ("\\.ts\\'" . typescript-ts-mode)))
+					      ("\\.ts\\'" . typescript-ts-mode)
+					      ("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode))) 
 
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 
+(defun me/global-set-keys (prefix keybinds)
+  "Set all keybinds in KEYBINDS with the prefix PREFIX.
+
+KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
+  (mapcar (lambda (keybind)
+	    (let ((key (car keybind))
+		  (func (cdr keybind)))
+	      (global-set-key (kbd (concat prefix " " key)) func)))
+	    keybinds))
 
 ;; keybinds
-(global-set-key (kbd "C-c o c") 'me/goto-config)
-(global-set-key (kbd "C-c o b") 'me/goto-bashrc)
-(global-set-key (kbd "C-c o s") 'me/sudo-open)
-(global-set-key (kbd "C-c o r") 'me/reload-file)
+(me/global-set-keys
+ "C-c o" '(("c" . me/goto-config)
+	   ("o" . me/goto-bashrc)
+	   ("s" . me/sudo-open)
+	   ("r" . me/reload-file)))
+
+(me/global-set-keys
+ "C-c u" '(("u" . upcase-region)
+	   ("l" . downcase-region)
+	   ("d" . duplicate-line)
+	   ("j" . join-line)))
+
+
+;; (global-set-key (kbd "C-c o c") 'me/goto-config)
+;; (global-set-key (kbd "C-c o b") 'me/goto-bashrc)
+;; (global-set-key (kbd "C-c o s") 'me/sudo-open)
+;; (global-set-key (kbd "C-c o r") 'me/reload-file)
 ;; (global-set-key (kbd "C-/") 'comment-line)
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 (defun me/eglot-mode-keybinds ()
-  (local-set-key (kbd "C-c a") 'eglot-code-actions) 
+  (local-set-key (kbd "C-c a") 'eglot-code-actions)
   (local-set-key (kbd "C-c d") 'xref-find-definitions)
+  (local-set-key (kbd "C-c D") 'eglot-find-implementation)
   (local-set-key (kbd "C-c r") 'eglot-rename))
 
-(add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
+;; (add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
 
-(define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
-(define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
-(define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
+;; (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
+;; (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
+;; (define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
+
+
 
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
@@ -274,5 +332,3 @@
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
-
-;; (debug-on-variable-change 'display-line-numbers)
