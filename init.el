@@ -164,6 +164,8 @@
   :ensure t)
 
 ;; language stuff
+(add-hook 'org-mode-hook 'flyspell-mode)
+
 (require 'eglot)
 
 (setq eglot-ignored-server-capabilities '(:inlayHintProvider))
