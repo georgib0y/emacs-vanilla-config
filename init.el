@@ -59,6 +59,12 @@
   (interactive "GFind file: ")
   (find-file (concat "/sudo::" (file-truename path))))
 
+(defun me/sudo-dired (dir)
+  "Like `dired' but opens the DIR as root"
+  (interactive "DDirectory: ")
+  (dired (concat "/sudo::" (file-truename dir))))
+
+
 (defun me/reload-file ()
   "Reload a file."
   (interactive)
@@ -99,6 +105,7 @@
 
 (delete-selection-mode 1)
 
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;; package stuff
 (require 'package)
@@ -161,7 +168,8 @@
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
-  (load-theme 'doom-spacegrey)
+  ;; (load-theme 'doom-spacegrey)
+  (load-theme 'doom-tomorrow-night)
 
   (doom-themes-visual-bell-config)
   (doom-themes-org-config))
@@ -312,6 +320,7 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 	   ("o" . me/goto-bashrc)
 	   ("d" . me/goto-documentation)
 	   ("s" . me/sudo-open)
+	   ("S" . me/sudo-dired)
 	   ("x" . scratch-buffer)
 	   ("r" . me/reload-file)))
 
