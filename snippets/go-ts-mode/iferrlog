@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: iferrlog
+# key: iferrlog
+# --
+if err != nil {
+   log.Fatal(err)
+}
