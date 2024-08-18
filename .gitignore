@@ -1,10 +1,12 @@
+.lsp-session*
+.cache/
 auto-save-list/
-eln-cache/
+auto-saves/
 backups/
-elpa/
 custom.el
+eln-cache/
+elpa/
+project*
+tramp
 transient/
 tree-sitter/
-tramp
-projectile*
-projects

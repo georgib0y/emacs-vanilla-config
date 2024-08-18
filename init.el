@@ -1,8 +1,8 @@
 ;; todo
 ;;   - mess with more gc stuff
 
-;; set the cleanup thres to 10MB from 800K - done before packages are loaded in
-(setq gc-cons-threshold 10000000)
+;; set the cleanup thres to ~10MB from 800K - done before packages are loaded in
+(setq gc-cons-threshold (* 10 1024 1024))
 (setq read-process-output-max (* 1024 1024)) ; 1mb
 
 ;; file stuff
@@ -11,12 +11,26 @@
   (setq custom-file customise-file)
   (load customise-file t)) ;; create file if no exist
 
+;; place file backups in conf emacs instead of littered around the pace
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
       backup-by-copying t ;; dont delink hardlinks
       version-control t
       delete-old-versions t
       keep-new-versions 20
       keep-old-versions 5)
+
+;; put lockfiles in tmp instead of littered around the place
+;; extracs the filename from the path and appends it to /tmp, uniquifying if needed
+;; take into consideration permissions of where the file is stored, as lockfiles
+;; are supposed to be able to be read by anyone
+(setq lock-file-name-transforms
+      '(("\\`/.*/\\([^/]+\\)\\'" "/tmp/\\1" t)))
+
+;; put remote autosave in /tmp and put regular autosave in conf emacs
+;; ordering is important
+(setq auto-save-file-name-transforms
+      '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
+	(".*" "~/.config/emacs/auto-saves/" t)))
 
 
 ;; my functions
@@ -35,6 +49,10 @@
   (interactive)
   (find-file "~/.bashrc"))
 
+(defun me/goto-documentation ()
+  "Opens ~/Documents/Documentation.org"
+  (interactive)
+  (find-file "~/Documents/Documentation.org"))
 
 (defun me/sudo-open (path)
   "Like `find-file' but opens PATH as root."
@@ -49,6 +67,7 @@
 (defun me/quick-switch-buffer ()
   (interactive)
   (switch-to-buffer nil))
+
 
 ;; ui stuff
 (setq inhibit-startup-screen t
@@ -291,7 +310,9 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 (me/global-set-keys
  "C-c o" '(("c" . me/goto-config)
 	   ("o" . me/goto-bashrc)
+	   ("d" . me/goto-documentation)
 	   ("s" . me/sudo-open)
+	   ("x" . scratch-buffer)
 	   ("r" . me/reload-file)))
 
 (me/global-set-keys
@@ -319,8 +340,6 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 ;; (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
 ;; (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
 ;; (define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
-
-
 
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
