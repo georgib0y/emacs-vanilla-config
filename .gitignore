@@ -10,3 +10,4 @@ project*
 tramp
 transient/
 tree-sitter/
+/url/

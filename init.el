@@ -317,7 +317,7 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 ;; keybinds
 (me/global-set-keys
  "C-c o" '(("c" . me/goto-config)
-	   ("o" . me/goto-bashrc)
+	   ("b" . me/goto-bashrc)
 	   ("d" . me/goto-documentation)
 	   ("s" . me/sudo-open)
 	   ("S" . me/sudo-dired)
