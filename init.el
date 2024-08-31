@@ -1,5 +1,10 @@
+;;; package --- Sumary
+;;; Commentary:
+
 ;; todo
 ;;   - mess with more gc stuff
+
+;;; Code:
 
 ;; set the cleanup thres to ~10MB from 800K - done before packages are loaded in
 (setq gc-cons-threshold (* 10 1024 1024))
@@ -15,9 +20,7 @@
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
       backup-by-copying t ;; dont delink hardlinks
       version-control t
-      delete-old-versions t
-      keep-new-versions 20
-      keep-old-versions 5)
+      delete-old-versions t)
 
 ;; put lockfiles in tmp instead of littered around the place
 ;; extracs the filename from the path and appends it to /tmp, uniquifying if needed
@@ -50,7 +53,7 @@
   (find-file "~/.bashrc"))
 
 (defun me/goto-documentation ()
-  "Opens ~/Documents/Documentation.org"
+  "Opens ~/Documents/Documentation.org."
   (interactive)
   (find-file "~/Documents/Documentation.org"))
 
@@ -60,7 +63,7 @@
   (find-file (concat "/sudo::" (file-truename path))))
 
 (defun me/sudo-dired (dir)
-  "Like `dired' but opens the DIR as root"
+  "Like `dired' but opens the DIR as root."
   (interactive "DDirectory: ")
   (dired (concat "/sudo::" (file-truename dir))))
 
@@ -71,6 +74,7 @@
   (find-alternate-file buffer-file-name))
 
 (defun me/quick-switch-buffer ()
+  "Switche to the last used, non-visible buffer."
   (interactive)
   (switch-to-buffer nil))
 
@@ -84,7 +88,7 @@
 (scroll-bar-mode -1)
 
 (global-display-line-numbers-mode t)
-(setq display-line-numbers-type 'relative)
+;;(setq display-line-numbers-type t)
 
 (global-hl-line-mode 1)
 
@@ -96,6 +100,7 @@
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
 (defun show-line-ruler ()
+  "Show a line rule at column 100."
   (setq display-fill-column-indicator t
 	display-fill-column-indicator-column 100
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
@@ -192,15 +197,13 @@
 (use-package yasnippet-snippets
   :ensure t)
 
-;; language stuff
-(add-hook 'org-mode-hook 'flyspell-mode)
+
 
 (defun me/lsp-mode-setup ()
-  ;; dont enable lsp-mode if in elisp mode
-  (unless (derived-mode-p 'emacs-lisp-mode)
+  "Check if not in elisp mode and then run lsp-mode."
+  (unless (derived-mode-p 'emacs-lisp-mode) ;; dont enable lsp-mode if in elisp mode
     (lsp)))
     
-
 (use-package lsp-mode
   :ensure t
   :init
@@ -220,47 +223,60 @@
   :ensure t
   :commands lsp-ivy-workspace-symbol)
 
+(use-package hl-todo
+  :ensure t
+  :hook (prog-mode . hl-todo-mode))
+
+(use-package flycheck
+  :ensure t
+  :init
+  (global-flycheck-mode 1))
+
+(use-package flycheck-hl-todo
+  :functions flycheck-buffer
+  :ensure t
+  :defer 5 ;; needs to come after hl-todo and flycheck
+  :config
+  (flycheck-hl-todo-setup))
+
+
 ;; language stuff
+(add-hook 'org-mode-hook 'flyspell-mode)
+
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
 							 (js . t)
 							 (python . t)))
 
+(defun me/flycheck-hl-todo-in-hl-todo-mode ()
+    "Turn Flycheck-hl-todo mode on when hl-todo mode comes on."
+    (setq flycheck-hl-todo-enabled hl-todo-mode)
+    (flycheck-buffer))
 
-(setq eglot-ignored-server-capabilities '(:inlayHintProvider))
+(add-hook 'hl-todo-mode-hook #'me/flycheck-hl-todo-in-hl-todo-mode)
 
-;; add clippy when using rust
-;; (add-to-list 'eglot-server-programs
-;; 	     '(rust-ts-mode . ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
+(defun me/inhibit-electric-pair-mode-p (char)
+  "A predicate for when `electric-pair-mode' should be inhibited.
 
-(defun me/eglot-mode-setup ()
-  ;; dont enable eglot or flymake if in elisp mode
-  (unless (derived-mode-p 'emacs-lisp-mode)
-    (eglot-ensure)
-     (flymake-mode))
-  (electric-pair-mode)
-  ;; disable pair mode in the minibuffer
-  (add-hook 'before-save-hook #'eglot-format-buffer))
-
-(defun me/inhibit-electric-pair-mode (char)
+CHAR is there as an arg because the original function had it."
   (minibufferp))
 
-(setq electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode)
-
-;; (add-hook 'prog-mode-hook 'me/eglot-mode-setup)
+(setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p)
 
 (defun me/ts-js-setup ()
+  "Setup for typescript and javascript."
   (setq tab-width 2))
 
 (add-hook 'typescript-ts-mode-hook #'me/ts-js-setup)
 
 (defun me/go-setup ()
+  "Setup for golang."
   (setq tab-width 4)
-  (setq go-ts-mode-indent-offset 4))
+  (setq-default go-ts-mode-indent-offset 4))
 
 (add-hook 'go-ts-mode-hook #'me/go-setup)
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
-(setq treesit-language-source-alist
+(defvar treesit-language-source-alist
       '((bash "https://github.com/tree-sitter/tree-sitter-bash")
 	(cmake "https://github.com/uyha/tree-sitter-cmake")
 	(css "https://github.com/tree-sitter/tree-sitter-css")
@@ -297,7 +313,7 @@
 					      ("\\.go\\'" . go-ts-mode)
 					      ("\\.rs\\'" . rust-ts-mode)
 					      ("\\.ts\\'" . typescript-ts-mode)
-					      ("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode))) 
+					      ("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
 
 ;; add colours to compilation out
@@ -321,7 +337,7 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 	   ("d" . me/goto-documentation)
 	   ("s" . me/sudo-open)
 	   ("S" . me/sudo-dired)
-	   ("x" . scratch-buffer)
+	   ("x" . persp-switch-to-scratch-buffer)
 	   ("r" . me/reload-file)))
 
 (me/global-set-keys
@@ -331,24 +347,8 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 	   ("j" . join-line)))
 
 
-;; (global-set-key (kbd "C-c o c") 'me/goto-config)
-;; (global-set-key (kbd "C-c o b") 'me/goto-bashrc)
-;; (global-set-key (kbd "C-c o s") 'me/sudo-open)
-;; (global-set-key (kbd "C-c o r") 'me/reload-file)
-;; (global-set-key (kbd "C-/") 'comment-line)
+
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
-
-(defun me/eglot-mode-keybinds ()
-  (local-set-key (kbd "C-c a") 'eglot-code-actions)
-  (local-set-key (kbd "C-c d") 'xref-find-definitions)
-  (local-set-key (kbd "C-c D") 'eglot-find-implementation)
-  (local-set-key (kbd "C-c r") 'eglot-rename))
-
-;; (add-hook 'prog-mode-hook 'me/eglot-mode-keybinds)
-
-;; (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
-;; (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
-;; (define-key flymake-mode-map (kbd "C-c e") 'flymake-show-buffer-diagnostics)
 
 (global-set-key (kbd "C-c c") 'compile)
 (global-set-key (kbd "C-c C") 'recompile)
@@ -360,3 +360,5 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
+(provide 'init)
+;;; init.el ends here

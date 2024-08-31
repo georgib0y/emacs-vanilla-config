@@ -3,5 +3,5 @@
 # key: iferr
 # --
 if err != nil {
-   return nil
+   return $0err
 }
