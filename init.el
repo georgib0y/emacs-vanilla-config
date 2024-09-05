@@ -1,20 +1,22 @@
-;;; package --- Sumary
-;;; Commentary:
+;;; package --- Summary
+;; My emacs configuration
 
-;; todo
-;;   - mess with more gc stuff
+;; GC and Buffer Sizes
+;; Increase the size of buffers and threshold - this isn't the 1900's anymore.
 
-;;; Code:
-
-;; set the cleanup thres to ~10MB from 800K - done before packages are loaded in
 (setq gc-cons-threshold (* 10 1024 1024))
 (setq read-process-output-max (* 1024 1024)) ; 1mb
 
-;; file stuff
+;; Customise file
+;; Move the customise variables into their own file.
+
 ;; move customise variables to their own file
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
   (setq custom-file customise-file)
   (load customise-file t)) ;; create file if no exist
+
+;; Backup file
+;; Put any backup files in the .conf folder instead of in the working dir
 
 ;; place file backups in conf emacs instead of littered around the pace
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
@@ -22,21 +24,25 @@
       version-control t
       delete-old-versions t)
 
-;; put lockfiles in tmp instead of littered around the place
-;; extracs the filename from the path and appends it to /tmp, uniquifying if needed
-;; take into consideration permissions of where the file is stored, as lockfiles
+;; Lock-file transforms
+;; Put lockfiles in tmp instead of littered around the place.
+;; Extracs the filename from the path and appends it to /tmp, uniquifying if needed.
+;; Take into consideration permissions of where the file is stored, as lockfiles
 ;; are supposed to be able to be read by anyone
+
 (setq lock-file-name-transforms
       '(("\\`/.*/\\([^/]+\\)\\'" "/tmp/\\1" t)))
 
-;; put remote autosave in /tmp and put regular autosave in conf emacs
-;; ordering is important
+;; Auto-save file transforms
+;; Put remote autosave in /tmp and put regular autosave in conf emacs.
+;; The ordering of this alist is important. The catch all should be at the end
+
 (setq auto-save-file-name-transforms
       '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
 	(".*" "~/.config/emacs/auto-saves/" t)))
 
+;; General functions
 
-;; my functions
 (defun me/add-multiple-to-alists (alist to-add)
   "Add all items in TO-ADD into ALIST."
   (dolist (element to-add)
@@ -67,35 +73,32 @@
   (interactive "DDirectory: ")
   (dired (concat "/sudo::" (file-truename dir))))
 
-
 (defun me/reload-file ()
   "Reload a file."
   (interactive)
   (find-alternate-file buffer-file-name))
+
+(defun me/reload-config ()
+  "Re-evaluate init.el"
+  )
 
 (defun me/quick-switch-buffer ()
   "Switche to the last used, non-visible buffer."
   (interactive)
   (switch-to-buffer nil))
 
+;; Ui
 
-;; ui stuff
 (setq inhibit-startup-screen t
       visible-bell t)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
-
 (global-display-line-numbers-mode t)
-;;(setq display-line-numbers-type t)
-
 (global-hl-line-mode 1)
-
 (setq column-number-mode t)
 
-(add-to-list 'default-frame-alist
-	     '(font . "NotoSansMono-12"))
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
@@ -112,7 +115,13 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
-;; package stuff
+;; TODO Fonts
+;; Do some checking for whether the font is installed and provide fallbacks
+(add-to-list 'default-frame-alist
+	     '(font . "NotoSansMono-12"))
+
+;; Setup
+;; Add repos and ensure use-package is installed
 (require 'package)
 
 ;; slightly improves startup time apparently
@@ -130,18 +139,6 @@
   :ensure t
   :config (which-key-mode))
 
-;; (use-package evil
-;;   :preface
-;;   (setq evil-want-C-u-scroll t)
-;;   :ensure t
-;;   :init
-;;   (dolist (mode '(prog-mode-hook text-mode org-mode))
-;;     (add-hook mode #'evil-local-mode))
-;;   :config
-;;   ;; uncomment to enable evil in more places
-;;   ;; (evil-mode 1)
-;;   (setq evil-insert-state-cursor '(bar . 3)))
-
 (use-package magit
   :ensure t
   :config
@@ -149,7 +146,7 @@
 
 (use-package markdown-mode
   :ensure t
-  ;; :mode ("README\\.md\\'" . gfm-mode)
+  :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package projectile
@@ -173,7 +170,6 @@
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
-  ;; (load-theme 'doom-spacegrey)
   (load-theme 'doom-tomorrow-night)
 
   (doom-themes-visual-bell-config)
@@ -197,13 +193,11 @@
 (use-package yasnippet-snippets
   :ensure t)
 
-
-
 (defun me/lsp-mode-setup ()
   "Check if not in elisp mode and then run lsp-mode."
   (unless (derived-mode-p 'emacs-lisp-mode) ;; dont enable lsp-mode if in elisp mode
     (lsp)))
-    
+
 (use-package lsp-mode
   :ensure t
   :init
@@ -213,10 +207,6 @@
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . electric-pair-mode)
   (before-save . lsp-format-buffer)
-  ;; note the `*' after bind - overrides any minor mode keybinds
-  :bind*
-  ("M-n" . flycheck-next-error)
-  ("M-p" . flycheck-previous-error)
   :commands lsp)
 
 (use-package lsp-ivy
@@ -225,34 +215,16 @@
 
 (use-package hl-todo
   :ensure t
-  :hook (prog-mode . hl-todo-mode))
-
-(use-package flycheck
-  :ensure t
-  :init
-  (global-flycheck-mode 1))
-
-(use-package flycheck-hl-todo
-  :functions flycheck-buffer
-  :ensure t
-  :defer 5 ;; needs to come after hl-todo and flycheck
   :config
-  (flycheck-hl-todo-setup))
+  (global-hl-todo-mode)
+  (add-to-list 'flymake-diagnostic-functions 'hl-todo-flymake))
 
-
-;; language stuff
+;; Language stuff
 (add-hook 'org-mode-hook 'flyspell-mode)
 
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
 							 (js . t)
 							 (python . t)))
-
-(defun me/flycheck-hl-todo-in-hl-todo-mode ()
-    "Turn Flycheck-hl-todo mode on when hl-todo mode comes on."
-    (setq flycheck-hl-todo-enabled hl-todo-mode)
-    (flycheck-buffer))
-
-(add-hook 'hl-todo-mode-hook #'me/flycheck-hl-todo-in-hl-todo-mode)
 
 (defun me/inhibit-electric-pair-mode-p (char)
   "A predicate for when `electric-pair-mode' should be inhibited.
@@ -319,6 +291,7 @@ CHAR is there as an arg because the original function had it."
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
+;; Keybinds
 
 (defun me/global-set-keys (prefix keybinds)
   "Set all keybinds in KEYBINDS with the prefix PREFIX.
@@ -330,7 +303,9 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 	      (global-set-key (kbd (concat prefix " " key)) func)))
 	    keybinds))
 
-;; keybinds
+(global-set-key (kbd "M-n") 'flymake-goto-next-error)
+(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+
 (me/global-set-keys
  "C-c o" '(("c" . me/goto-config)
 	   ("b" . me/goto-bashrc)
@@ -346,8 +321,6 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 	   ("d" . duplicate-line)
 	   ("j" . join-line)))
 
-
-
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 (global-set-key (kbd "C-c c") 'compile)
@@ -360,5 +333,8 @@ KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
+
+;; Footer
+
 (provide 'init)
 ;;; init.el ends here
