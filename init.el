@@ -159,7 +159,11 @@
 (use-package ivy
   :ensure t
   :init
-  (ivy-mode))
+  (ivy-mode)
+  :config
+  (setq ivy-count-format "(%d/%d) ")
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-display-functions-alist '((t . nil))))
 
 (use-package vterm
   :ensure t
@@ -218,6 +222,17 @@
   :config
   (global-hl-todo-mode)
   (add-to-list 'flymake-diagnostic-functions 'hl-todo-flymake))
+
+
+;; required by zig mode
+(use-package reformatter
+  :ensure t)
+
+(use-package zig-mode
+  :ensure t)
+
+(use-package lsp-java
+  :ensure t)
 
 ;; Language stuff
 (add-hook 'org-mode-hook 'flyspell-mode)
