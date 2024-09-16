@@ -199,7 +199,7 @@
 
 (defun me/lsp-mode-setup ()
   "Check if not in elisp mode and then run lsp-mode."
-  (unless (derived-mode-p 'emacs-lisp-mode) ;; dont enable lsp-mode if in elisp mode
+  (unless (derived-mode-p 'emacs-lisp-mode 'makefile-mode) ;; dont enable lsp-mode if in elisp mode
     (lsp)))
 
 (use-package lsp-mode
@@ -211,9 +211,12 @@
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . electric-pair-mode)
   (before-save . lsp-format-buffer)
-  :commands lsp)
+  :commands lsp
+  :config
+  (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
 
 (use-package lsp-ivy
+  :after lsp-mode
   :ensure t
   :commands lsp-ivy-workspace-symbol)
 
