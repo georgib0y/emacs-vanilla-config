@@ -41,7 +41,9 @@
       '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
 	(".*" "~/.config/emacs/auto-saves/" t)))
 
+
 ;; General functions
+(require 'cl-lib)
 
 (defun me/add-multiple-to-alists (alist to-add)
   "Add all items in TO-ADD into ALIST."
@@ -86,6 +88,16 @@
   "Switche to the last used, non-visible buffer."
   (interactive)
   (switch-to-buffer nil))
+
+(defun me/upcase ()
+  "Upcase the highlighed region or otherwise upcase the char under cursor."
+  (interactive)
+  (if mark-active (upcase-region (region-beginning) (region-end)) (upcase-char 1)))
+
+(defun me/downcase ()
+  "Downcase the highlighted region or otherwise downcase the char under the cursor"
+  (interactive)
+  (if mark-active (downcase-region (region-beginning) (region-end)) (downcase-char 1)))
 
 ;; Ui
 
@@ -199,8 +211,11 @@
 
 (defun me/lsp-mode-setup ()
   "Check if not in elisp mode and then run lsp-mode."
-  (unless (derived-mode-p 'emacs-lisp-mode 'makefile-mode) ;; dont enable lsp-mode if in elisp mode
-    (lsp)))
+  (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
+	((derived-mode-p 'python-base-mode) ;; enable python lsp if in python mode
+	 (require 'lsp-pyright)
+	 (lsp))
+	((t) (lsp)))) ;; otherwise just enable lsp
 
 (use-package lsp-mode
   :ensure t
@@ -219,6 +234,9 @@
   :after lsp-mode
   :ensure t
   :commands lsp-ivy-workspace-symbol)
+
+(use-package lsp-pyright
+  :ensure t)
 
 (use-package hl-todo
   :ensure t
@@ -309,45 +327,79 @@ CHAR is there as an arg because the original function had it."
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
+(defvar me/keybinds-mode-map (make-sparse-keymap))
+
+(define-key me/keybinds-mode-map (kbd "C-c o c") 'me/goto-config)
+(define-key me/keybinds-mode-map (kbd "C-c o b") 'me/goto-bashrc)
+(define-key me/keybinds-mode-map (kbd "C-c o d") 'me/goto-documentation)
+(define-key me/keybinds-mode-map (kbd "C-c o s") 'me/sudo-open)
+(define-key me/keybinds-mode-map (kbd "C-c o S") 'me/sudo-dired)
+(define-key me/keybinds-mode-map (kbd "C-c o x") 'persp-switch-to-scratch-buffer)
+(define-key me/keybinds-mode-map (kbd "C-c o r") 'me/reload-file)
+(define-key me/keybinds-mode-map (kbd "C-c u u") 'me/upcase)
+(define-key me/keybinds-mode-map (kbd "C-c u l") 'me/downcase)
+(define-key me/keybinds-mode-map (kbd "C-c u d") 'duplicate-line)
+(define-key me/keybinds-mode-map (kbd "C-c u j") 'join-line)
+(define-key me/keybinds-mode-map (kbd "C-c C-d") 'duplicate-line)
+(define-key me/keybinds-mode-map (kbd "C-c C-j") 'join-line)
+(define-key me/keybinds-mode-map (kbd "C-c s") 'yas-insert-snippet)
+
+
 ;; Keybinds
+(define-minor-mode me/keybinds-mode
+  "Toggle my personal keybindings"
+  :global t
+  :lighter " keys"
+  :keymap me/keybinds-mode-map)
 
-(defun me/global-set-keys (prefix keybinds)
-  "Set all keybinds in KEYBINDS with the prefix PREFIX.
+(me/keybinds-mode 1)
 
-KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
-  (mapcar (lambda (keybind)
-	    (let ((key (car keybind))
-		  (func (cdr keybind)))
-	      (global-set-key (kbd (concat prefix " " key)) func)))
-	    keybinds))
+(defun me/keybinds-mode-most-precedent ()
+  "Shadow `minor-mode-map-alist' to put me keybinds at the top."
+  (add-to-list 'minor-mode-map-alist '(me/keybinds-mode . me/keybinds-mode-map)))
 
+;; run this hook after everything else
+(add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
+
+;; (defun me/global-set-keys (prefix keybinds)
+;;   "Set all keybinds in KEYBINDS with the prefix PREFIX.
+
+;; KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
+;;   (mapcar (lambda (keybind)
+;; 	    (let ((key (car keybind))
+;; 		  (func (cdr keybind)))
+;; 	      (global-set-key (kbd (concat prefix " " key)) func)))
+;; 	    keybinds))
+
+;; these globals cannot be set in my mode because they do not have a prefix
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
-
-(me/global-set-keys
- "C-c o" '(("c" . me/goto-config)
-	   ("b" . me/goto-bashrc)
-	   ("d" . me/goto-documentation)
-	   ("s" . me/sudo-open)
-	   ("S" . me/sudo-dired)
-	   ("x" . persp-switch-to-scratch-buffer)
-	   ("r" . me/reload-file)))
-
-(me/global-set-keys
- "C-c u" '(("u" . upcase-region)
-	   ("l" . downcase-region)
-	   ("d" . duplicate-line)
-	   ("j" . join-line)))
-
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
-(global-set-key (kbd "C-c c") 'compile)
-(global-set-key (kbd "C-c C") 'recompile)
+;; (me/global-set-keys
+;;  "C-c o" '(("c" . me/goto-config)
+;; 	   ("b" . me/goto-bashrc)
+;; 	   ("d" . me/goto-documentation)
+;; 	   ("s" . me/sudo-open)
+;; 	   ("S" . me/sudo-dired)
+;; 	   ("x" . persp-switch-to-scratch-buffer)
+;; 	   ("r" . me/reload-file)))
 
-(global-set-key (kbd "C-c C-d") 'duplicate-line)
-(global-set-key (kbd "C-c C-j") 'join-line)
+;; (me/global-set-keys
+;;  "C-c u" '(("u" . me/upcase)
+;; 	   ("l" . me/downcase)
+;; 	   ("d" . duplicate-line)
+;; 	   ("j" . join-line)))
 
-(global-set-key (kbd "C-c s") 'yas-insert-snippet)
+
+
+;; (global-set-key (kbd "C-c c") 'compile)
+;; (global-set-key (kbd "C-c C") 'recompile)
+
+;; (global-set-key (kbd "C-c C-d") 'duplicate-line)
+;; (global-set-key (kbd "C-c C-j") 'join-line)
+
+;; (global-set-key (kbd "C-c s") 'yas-insert-snippet)
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
