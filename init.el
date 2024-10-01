@@ -80,9 +80,6 @@
   (interactive)
   (find-alternate-file buffer-file-name))
 
-(defun me/reload-config ()
-  "Re-evaluate init.el"
-  )
 
 (defun me/quick-switch-buffer ()
   "Switche to the last used, non-visible buffer."
@@ -263,12 +260,11 @@
 							 (python . t)))
 
 (defun me/inhibit-electric-pair-mode-p (char)
-  "A predicate for when `electric-pair-mode' should be inhibited.
-
-CHAR is there as an arg because the original function had it."
-  (minibufferp))
+  "A predicate for when `electric-pair-mode' should be inhibited."
+  (or (minibufferp) (electric-pair-default-inhibit char)))
 
 (setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p)
+
 
 (defun me/ts-js-setup ()
   "Setup for typescript and javascript."
