@@ -158,12 +158,12 @@
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
 
-(use-package projectile
-  :ensure t
-  :init
-  (projectile-mode +1)
-  :bind (:map projectile-mode-map
-	      ("C-c p" . projectile-command-map)))
+;; (use-package projectile
+;;   :ensure t
+;;   :init
+;;   (projectile-mode +1)
+;;   :bind (:map projectile-mode-map
+;; 	      ("C-c p" . projectile-command-map)))
 
 (use-package ivy
   :ensure t
@@ -212,7 +212,7 @@
 	((derived-mode-p 'python-base-mode) ;; enable python lsp if in python mode
 	 (require 'lsp-pyright)
 	 (lsp))
-	((t) (lsp)))) ;; otherwise just enable lsp
+	(t (lsp)))) ;; otherwise just enable lsp
 
 (use-package lsp-mode
   :ensure t
@@ -220,12 +220,15 @@
   (setq lsp-keymap-prefix "C-c l")
   :hook
   (prog-mode . me/lsp-mode-setup)
+  ;; (c-mode . me/lsp-mode-setup)
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . electric-pair-mode)
   (before-save . lsp-format-buffer)
+  
   :commands lsp
   :config
   (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
+
 
 (use-package lsp-ivy
   :after lsp-mode
