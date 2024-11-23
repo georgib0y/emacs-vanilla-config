@@ -96,6 +96,15 @@
   (interactive)
   (if mark-active (downcase-region (region-beginning) (region-end)) (downcase-char 1)))
 
+(defun me/leave-msg (msg)
+  "Create a functoin that rings the bell, print why with `msg'"
+  `(lambda ()
+    (interactive)
+    (ding)
+    (if ,msg
+	(message "%s" ,msg)
+      nil)))
+
 ;; Ui
 
 (setq inhibit-startup-screen t
@@ -342,6 +351,9 @@
 (define-key me/keybinds-mode-map (kbd "C-c C-d") 'duplicate-line)
 (define-key me/keybinds-mode-map (kbd "C-c C-j") 'join-line)
 (define-key me/keybinds-mode-map (kbd "C-c s") 'yas-insert-snippet)
+(define-key me/keybinds-mode-map (kbd "C-x [") (me/leave-msg "C-x [ is disabled"))
+(define-key me/keybinds-mode-map (kbd "C-x C-p") (me/leave-msg "C-x C-p is disabled"))
+
 
 
 ;; Keybinds
@@ -360,45 +372,10 @@
 ;; run this hook after everything else
 (add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
 
-;; (defun me/global-set-keys (prefix keybinds)
-;;   "Set all keybinds in KEYBINDS with the prefix PREFIX.
-
-;; KEYBINDS is an alist where each keybind has the form (KEY . FUNCTION)"
-;;   (mapcar (lambda (keybind)
-;; 	    (let ((key (car keybind))
-;; 		  (func (cdr keybind)))
-;; 	      (global-set-key (kbd (concat prefix " " key)) func)))
-;; 	    keybinds))
-
 ;; these globals cannot be set in my mode because they do not have a prefix
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
-
-;; (me/global-set-keys
-;;  "C-c o" '(("c" . me/goto-config)
-;; 	   ("b" . me/goto-bashrc)
-;; 	   ("d" . me/goto-documentation)
-;; 	   ("s" . me/sudo-open)
-;; 	   ("S" . me/sudo-dired)
-;; 	   ("x" . persp-switch-to-scratch-buffer)
-;; 	   ("r" . me/reload-file)))
-
-;; (me/global-set-keys
-;;  "C-c u" '(("u" . me/upcase)
-;; 	   ("l" . me/downcase)
-;; 	   ("d" . duplicate-line)
-;; 	   ("j" . join-line)))
-
-
-
-;; (global-set-key (kbd "C-c c") 'compile)
-;; (global-set-key (kbd "C-c C") 'recompile)
-
-;; (global-set-key (kbd "C-c C-d") 'duplicate-line)
-;; (global-set-key (kbd "C-c C-j") 'join-line)
-
-;; (global-set-key (kbd "C-c s") 'yas-insert-snippet)
 
 ;; defaults to shift-{left,right,up,down}
 (windmove-default-keybindings)
