@@ -2,7 +2,7 @@
 ;; My emacs configuration
 
 ;; GC and Buffer Sizes
-;; Increase the size of buffers and threshold - this isn't the 1900's anymore.
+;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
 
 (setq gc-cons-threshold (* 10 1024 1024))
 (setq read-process-output-max (* 1024 1024)) ; 1mb
@@ -78,7 +78,10 @@
 (defun me/reload-file ()
   "Reload a file."
   (interactive)
-  (find-alternate-file buffer-file-name))
+  (let ((pos (point)))
+    (find-alternate-file buffer-file-name)
+    (goto-char pos)))
+
 
 
 (defun me/quick-switch-buffer ()
@@ -127,7 +130,7 @@
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
   (display-fill-column-indicator-mode))
 
-(add-hook 'prog-mode #'show-line-ruler)
+(add-hook 'prog-mode-hook #'show-line-ruler)
 
 (delete-selection-mode 1)
 
@@ -157,6 +160,13 @@
   :ensure t
   :config (which-key-mode))
 
+(use-package ace-window
+  :ensure t
+  :bind ("M-o" . ace-window)
+  :config
+  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+  (setq aw-background nil))
+
 (use-package magit
   :ensure t
   :config
@@ -166,13 +176,6 @@
   :ensure t
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
-
-;; (use-package projectile
-;;   :ensure t
-;;   :init
-;;   (projectile-mode +1)
-;;   :bind (:map projectile-mode-map
-;; 	      ("C-c p" . projectile-command-map)))
 
 (use-package ivy
   :ensure t
@@ -215,6 +218,9 @@
 (use-package yasnippet-snippets
   :ensure t)
 
+(use-package dap-mode
+  :ensure t)
+
 (defun me/lsp-mode-setup ()
   "Check if not in elisp mode and then run lsp-mode."
   (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
@@ -227,9 +233,9 @@
   :ensure t
   :init
   (setq lsp-keymap-prefix "C-c l")
+  (setq lsp-prefer-flymake t)
   :hook
   (prog-mode . me/lsp-mode-setup)
-  ;; (c-mode . me/lsp-mode-setup)
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . electric-pair-mode)
   (before-save . lsp-format-buffer)
@@ -237,7 +243,6 @@
   :commands lsp
   :config
   (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
-
 
 (use-package lsp-ivy
   :after lsp-mode
@@ -262,7 +267,12 @@
   :ensure t)
 
 (use-package lsp-java
-  :ensure t)
+  :ensure t
+  :config
+  (setq c-basic-offset 4)
+  (setq lsp-java-format-settings-url "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml")
+  (setq lsp-java-format-settings-profile "GoogleStyle"))
+
 
 ;; Language stuff
 (add-hook 'org-mode-hook 'flyspell-mode)
@@ -290,6 +300,18 @@
   (setq-default go-ts-mode-indent-offset 4))
 
 (add-hook 'go-ts-mode-hook #'me/go-setup)
+
+(defun me/java-setup ()
+  "Setup for java."
+  ;; (flymake-mode-off)
+  ;; (flycheck-mode t)
+  (require 'dap-java)
+  (indent-tabs-mode nil)
+  (setq tab-width 4)
+  (setq c-basic-offset 4))
+
+(add-hook 'java-mode-hook #'me/java-setup)
+  
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (defvar treesit-language-source-alist
@@ -350,11 +372,14 @@
 (define-key me/keybinds-mode-map (kbd "C-c u j") 'join-line)
 (define-key me/keybinds-mode-map (kbd "C-c C-d") 'duplicate-line)
 (define-key me/keybinds-mode-map (kbd "C-c C-j") 'join-line)
-(define-key me/keybinds-mode-map (kbd "C-c s") 'yas-insert-snippet)
+(define-key me/keybinds-mode-map (kbd "C-c s") 'just-one-space)
+(define-key me/keybinds-mode-map (kbd "C-c z") 'zap-up-to-char)
 (define-key me/keybinds-mode-map (kbd "C-x [") (me/leave-msg "C-x [ is disabled"))
 (define-key me/keybinds-mode-map (kbd "C-x C-p") (me/leave-msg "C-x C-p is disabled"))
 
 
+;; TODO unset this once comfortable with ace-window
+(global-set-key (kbd "C-x o") (me/leave-msg "C-x o is temporarily disabled, use ace-window M-o instead"))
 
 ;; Keybinds
 (define-minor-mode me/keybinds-mode
@@ -378,7 +403,7 @@
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
 
 ;; defaults to shift-{left,right,up,down}
-(windmove-default-keybindings)
+;; (windmove-default-keybindings)
 
 ;; Footer
 
