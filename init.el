@@ -1,4 +1,4 @@
-;;; package --- Summary
+;;; package --- Summary  -*- lexical-binding: t; -*-
 ;; My emacs configuration
 
 ;; GC and Buffer Sizes
@@ -120,7 +120,6 @@
 (global-hl-line-mode 1)
 (setq column-number-mode t)
 
-
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
 (defun show-line-ruler ()
@@ -135,6 +134,11 @@
 (delete-selection-mode 1)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
+
+(setq completion-auto-select t)
+(setq completions-max-height 20)
+
+
 
 ;; TODO Fonts
 ;; Do some checking for whether the font is installed and provide fallbacks
@@ -167,6 +171,39 @@
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
   (setq aw-background nil))
 
+;; TODO consult?
+
+(use-package vertico
+  :ensure t
+  :hook
+  ('cursor-intangible-mode . 'minibuffer-setup-hook)
+  :init
+  (defun crm-indicator (args)
+    "Add prompt indicator to `completing-read-multiple'.
+    We display [CRM<separator>], e.g., [CRM,] if the separator is a comma."
+    (cons (format "[CRM%s] %s"
+		  (replace-regexp-in-string "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+  (setq minibuffer-prompt-properties
+	'(read-only t cursor-intangible t face minibuffer-prompt))
+  (vertico-mode)
+  :config
+  (setq enable-recursive-minibuffers t)
+  (setq read-extended-command-predicate #'command-completion-default-include-p))
+
+(use-package orderless
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion))))
+  :config
+  (setq completion-sort 'orderless)
+)
+
 (use-package magit
   :ensure t
   :config
@@ -176,19 +213,6 @@
   :ensure t
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
-
-(use-package ivy
-  :ensure t
-  :init
-  (ivy-mode)
-  :config
-  (setq ivy-count-format "(%d/%d) ")
-  (setq ivy-use-virtual-buffers t)
-  (setq ivy-display-functions-alist '((t . nil))))
-
-(use-package vterm
-  :ensure t
-  :bind ("C-c o t" . vterm))
 
 (use-package doom-themes
   :ensure t
@@ -203,8 +227,8 @@
 (use-package perspective
   :ensure t
   :bind
-  ("C-x b" . persp-ivy-switch-buffer)
-  ("C-x C-b" . persp-buffer-menu)
+  ;; ("C-x b" . persp-switch-buffer)
+  ;; ("C-x C-b" . persp-buffer-menu)
   :custom
   (persp-mode-prefix-key (kbd "C-z"))
   :init
@@ -219,14 +243,18 @@
   :ensure t)
 
 (use-package dap-mode
-  :ensure t)
+  :ensure t
+  :config
+  (dap-auto-configure-mode t)
+  (require 'dap-java)
+  (require 'dap-lldb)
+  (require 'dap-gdb-lldb)
+  (setq dap-lldb-debug-program "/usr/bin/lldb-dap"))
 
 (defun me/lsp-mode-setup ()
   "Check if not in elisp mode and then run lsp-mode."
+  (add-hook 'before-save 'lsp-format-buffer)
   (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
-	((derived-mode-p 'python-base-mode) ;; enable python lsp if in python mode
-	 (require 'lsp-pyright)
-	 (lsp))
 	(t (lsp)))) ;; otherwise just enable lsp
 
 (use-package lsp-mode
@@ -238,18 +266,15 @@
   (prog-mode . me/lsp-mode-setup)
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . electric-pair-mode)
-  (before-save . lsp-format-buffer)
   
   :commands lsp
   :config
   (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
 
-(use-package lsp-ivy
-  :after lsp-mode
-  :ensure t
-  :commands lsp-ivy-workspace-symbol)
-
 (use-package lsp-pyright
+  :ensure t)
+
+(use-package pyvenv
   :ensure t)
 
 (use-package hl-todo
@@ -290,9 +315,10 @@
 
 (defun me/ts-js-setup ()
   "Setup for typescript and javascript."
-  (setq tab-width 2))
+  (setq tab-width 4))
 
 (add-hook 'typescript-ts-mode-hook #'me/ts-js-setup)
+(add-hook 'js-mode-hook #'me/ts-js-setup)
 
 (defun me/go-setup ()
   "Setup for golang."
@@ -311,7 +337,12 @@
   (setq c-basic-offset 4))
 
 (add-hook 'java-mode-hook #'me/java-setup)
-  
+
+(defun me/python-setup ()
+  "Setup for python."
+  (require 'lsp-pyright))
+
+(add-hook 'python-base-mode-hook #'me/python-setup)
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (defvar treesit-language-source-alist
