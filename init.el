@@ -242,37 +242,37 @@
 (use-package yasnippet-snippets
   :ensure t)
 
-(use-package dap-mode
-  :ensure t
-  :config
-  (dap-auto-configure-mode t)
-  (require 'dap-java)
-  (require 'dap-lldb)
-  (require 'dap-gdb-lldb)
-  (setq dap-lldb-debug-program "/usr/bin/lldb-dap"))
+;; (use-package dap-mode
+;;   :ensure t
+;;   :config
+;;   (dap-auto-configure-mode t)
+;;   (require 'dap-java)
+;;   (require 'dap-lldb)
+;;   (require 'dap-gdb-lldb)
+;;   (setq dap-lldb-debug-program "/usr/bin/lldb-dap"))
 
-(defun me/lsp-mode-setup ()
-  "Check if not in elisp mode and then run lsp-mode."
-  (add-hook 'before-save 'lsp-format-buffer)
-  (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
-	(t (lsp)))) ;; otherwise just enable lsp
+;; (defun me/lsp-mode-setup ()
+;;   "Check if not in elisp mode and then run lsp-mode."
+;;   (add-hook 'before-save 'lsp-format-buffer)
+;;   (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
+;; 	(t (lsp)))) ;; otherwise just enable lsp
 
-(use-package lsp-mode
-  :ensure t
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  (setq lsp-prefer-flymake t)
-  :hook
-  (prog-mode . me/lsp-mode-setup)
-  (lsp-mode . lsp-enable-which-key-integration)
-  (lsp-mode . electric-pair-mode)
+;; (use-package lsp-mode
+;;   :ensure t
+;;   :init
+;;   (setq lsp-keymap-prefix "C-c l")
+;;   (setq lsp-prefer-flymake t)
+;;   :hook
+;;   (prog-mode . me/lsp-mode-setup)
+;;   (lsp-mode . lsp-enable-which-key-integration)
+;;   (lsp-mode . electric-pair-mode)
   
-  :commands lsp
-  :config
-  (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
+;;   :commands lsp
+;;   :config
+;;   (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
 
-(use-package lsp-pyright
-  :ensure t)
+;; (use-package lsp-pyright
+;;   :ensure t)
 
 (use-package pyvenv
   :ensure t)
@@ -291,15 +291,16 @@
 (use-package zig-mode
   :ensure t)
 
-(use-package lsp-java
-  :ensure t
-  :config
-  (setq c-basic-offset 4)
-  (setq lsp-java-format-settings-url "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml")
-  (setq lsp-java-format-settings-profile "GoogleStyle"))
-
-
 ;; Language stuff
+(require 'tramp)
+(add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+	       '(rust-ts-mode . ("rust-analyzer"))
+	       '(go-ts-mode . ("gopls" "-remote=auto")))
+  (add-hook 'prog-mode-hook 'eglot-ensure))
+
 (add-hook 'org-mode-hook 'flyspell-mode)
 
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
