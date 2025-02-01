@@ -279,7 +279,7 @@
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
 							 (js . t)
 							 (python . t)))
-
+(add-hook 'prog-mode-hook 'electric-pair-mode)
 (defun me/inhibit-electric-pair-mode-p (char)
   "A predicate for when `electric-pair-mode' should be inhibited."
   (or (minibufferp) (electric-pair-default-inhibit char)))
