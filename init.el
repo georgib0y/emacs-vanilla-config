@@ -3,13 +3,11 @@
 
 ;; GC and Buffer Sizes
 ;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
-
 (setq gc-cons-threshold (* 10 1024 1024))
 (setq read-process-output-max (* 1024 1024)) ; 1mb
 
 ;; Customise file
 ;; Move the customise variables into their own file.
-
 ;; move customise variables to their own file
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
   (setq custom-file customise-file)
@@ -17,7 +15,6 @@
 
 ;; Backup file
 ;; Put any backup files in the .conf folder instead of in the working dir
-
 ;; place file backups in conf emacs instead of littered around the pace
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
       backup-by-copying t ;; dont delink hardlinks
@@ -29,14 +26,12 @@
 ;; Extracs the filename from the path and appends it to /tmp, uniquifying if needed.
 ;; Take into consideration permissions of where the file is stored, as lockfiles
 ;; are supposed to be able to be read by anyone
-
 (setq lock-file-name-transforms
       '(("\\`/.*/\\([^/]+\\)\\'" "/tmp/\\1" t)))
 
 ;; Auto-save file transforms
 ;; Put remote autosave in /tmp and put regular autosave in conf emacs.
 ;; The ordering of this alist is important. The catch all should be at the end
-
 (setq auto-save-file-name-transforms
       '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
 	(".*" "~/.config/emacs/auto-saves/" t)))
@@ -82,8 +77,6 @@
     (find-alternate-file buffer-file-name)
     (goto-char pos)))
 
-
-
 (defun me/quick-switch-buffer ()
   "Switche to the last used, non-visible buffer."
   (interactive)
@@ -92,15 +85,19 @@
 (defun me/upcase ()
   "Upcase the highlighed region or otherwise upcase the char under cursor."
   (interactive)
-  (if mark-active (upcase-region (region-beginning) (region-end)) (upcase-char 1)))
+  (let ((start (if mark-active (region-beginning) (point)))
+	(end (if mark-active (region-end) (+ (point) 1))))
+    (upcase-region start end)))
 
 (defun me/downcase ()
-  "Downcase the highlighted region or otherwise downcase the char under the cursor"
+  "Downcase the highlighted region or otherwise downcase the char under the cursor."
   (interactive)
-  (if mark-active (downcase-region (region-beginning) (region-end)) (downcase-char 1)))
+  (let ((start (if mark-active (region-beginning) (point)))
+	(end (if mark-active (region-end) (+ (point) 1))))
+    (downcase-region start end)))
 
 (defun me/leave-msg (msg)
-  "Create a functoin that rings the bell, print why with `msg'"
+  "Create a functoin that rings the bell, print why with `MSG'."
   `(lambda ()
     (interactive)
     (ding)
@@ -111,14 +108,15 @@
 ;; Ui
 
 (setq inhibit-startup-screen t
-      visible-bell t)
+      visible-bell t
+      column-number-mode t)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (global-display-line-numbers-mode t)
 (global-hl-line-mode 1)
-(setq column-number-mode t)
+(pixel-scroll-mode 1)
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
@@ -135,15 +133,14 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+;; completions setup
 (setq completion-auto-select t)
 (setq completions-max-height 20)
+(setq completions-format 'one-column)
 
+;; font size
+(set-face-attribute 'default nil :height 140)
 
-
-;; TODO Fonts
-;; Do some checking for whether the font is installed and provide fallbacks
-(add-to-list 'default-frame-alist
-	     '(font . "NotoSansMono-12"))
 
 ;; Setup
 ;; Add repos and ensure use-package is installed
@@ -172,6 +169,24 @@
   (setq aw-background nil))
 
 ;; TODO consult?
+(use-package consult
+  :ensure t
+  :config
+  (setq completion-in-region-function
+	(lambda (&rest args)
+	  (apply (if vertico-mode
+		     #'consult-completion-in-region
+		   #'completion--in-region-1)
+		 args))))
+
+(use-package orderless
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion))))
+  :config
+  (setq completion-sort 'orderless))
 
 (use-package vertico
   :ensure t
@@ -183,7 +198,7 @@
     We display [CRM<separator>], e.g., [CRM,] if the separator is a comma."
     (cons (format "[CRM%s] %s"
 		  (replace-regexp-in-string "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
-                   crm-separator)
+					    crm-separator)
                   (car args))
           (cdr args)))
   (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
@@ -193,16 +208,6 @@
   :config
   (setq enable-recursive-minibuffers t)
   (setq read-extended-command-predicate #'command-completion-default-include-p))
-
-(use-package orderless
-  :ensure t
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-defaults nil)
-  (completion-category-overrides '((file (styles partial-completion))))
-  :config
-  (setq completion-sort 'orderless)
-)
 
 (use-package magit
   :ensure t
@@ -219,7 +224,7 @@
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
-  (load-theme 'doom-tomorrow-night)
+  (load-theme 'doom-xcode)
 
   (doom-themes-visual-bell-config)
   (doom-themes-org-config))
@@ -241,38 +246,6 @@
 
 (use-package yasnippet-snippets
   :ensure t)
-
-;; (use-package dap-mode
-;;   :ensure t
-;;   :config
-;;   (dap-auto-configure-mode t)
-;;   (require 'dap-java)
-;;   (require 'dap-lldb)
-;;   (require 'dap-gdb-lldb)
-;;   (setq dap-lldb-debug-program "/usr/bin/lldb-dap"))
-
-;; (defun me/lsp-mode-setup ()
-;;   "Check if not in elisp mode and then run lsp-mode."
-;;   (add-hook 'before-save 'lsp-format-buffer)
-;;   (cond ((derived-mode-p 'emacs-lisp-mode 'makefile-mode) ()) ;; dont enable lsp-mode if in elisp mode
-;; 	(t (lsp)))) ;; otherwise just enable lsp
-
-;; (use-package lsp-mode
-;;   :ensure t
-;;   :init
-;;   (setq lsp-keymap-prefix "C-c l")
-;;   (setq lsp-prefer-flymake t)
-;;   :hook
-;;   (prog-mode . me/lsp-mode-setup)
-;;   (lsp-mode . lsp-enable-which-key-integration)
-;;   (lsp-mode . electric-pair-mode)
-  
-;;   :commands lsp
-;;   :config
-;;   (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
-
-;; (use-package lsp-pyright
-;;   :ensure t)
 
 (use-package pyvenv
   :ensure t)
@@ -313,37 +286,26 @@
 
 (setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p)
 
+;; (defmacro me/lang-setup (name hooks &rest body)
+(defmacro me/lang-setup (NAME HOOKS &rest BODY)
+  "Create a setup func with the `name' and as it to each hook in `HOOKS'."
+  `(progn
+     (defun ,(intern (concat "me/" NAME "-setup")) () ,@BODY)
+     (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
 
-(defun me/ts-js-setup ()
-  "Setup for typescript and javascript."
-  (setq tab-width 4))
+(me/lang-setup "ts-js"
+	       '(typescript-ts-mode-hook js-mode-hook)
+	       (setq tab-width 4))
 
-(add-hook 'typescript-ts-mode-hook #'me/ts-js-setup)
-(add-hook 'js-mode-hook #'me/ts-js-setup)
+(me/lang-setup "go"
+	       '(go-ts-mode-hook go-mod-ts-mode-hook)
+	       (setq tab-width 4))
 
-(defun me/go-setup ()
-  "Setup for golang."
-  (setq tab-width 4)
-  (setq-default go-ts-mode-indent-offset 4))
-
-(add-hook 'go-ts-mode-hook #'me/go-setup)
-
-(defun me/java-setup ()
-  "Setup for java."
-  ;; (flymake-mode-off)
-  ;; (flycheck-mode t)
-  (require 'dap-java)
-  (indent-tabs-mode nil)
-  (setq tab-width 4)
-  (setq c-basic-offset 4))
-
-(add-hook 'java-mode-hook #'me/java-setup)
-
-(defun me/python-setup ()
-  "Setup for python."
-  (require 'lsp-pyright))
-
-(add-hook 'python-base-mode-hook #'me/python-setup)
+(me/lang-setup "java"
+	       '(java-mode-hook)
+	       (indent-tabs-mode nil)
+	       (setq tab-width 4)
+	       (setq c-basic-offset 4))
 
 ;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 (defvar treesit-language-source-alist
@@ -390,24 +352,25 @@
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 (defvar me/keybinds-mode-map (make-sparse-keymap))
-
-(define-key me/keybinds-mode-map (kbd "C-c o c") 'me/goto-config)
-(define-key me/keybinds-mode-map (kbd "C-c o b") 'me/goto-bashrc)
-(define-key me/keybinds-mode-map (kbd "C-c o d") 'me/goto-documentation)
-(define-key me/keybinds-mode-map (kbd "C-c o s") 'me/sudo-open)
-(define-key me/keybinds-mode-map (kbd "C-c o S") 'me/sudo-dired)
-(define-key me/keybinds-mode-map (kbd "C-c o x") 'persp-switch-to-scratch-buffer)
-(define-key me/keybinds-mode-map (kbd "C-c o r") 'me/reload-file)
-(define-key me/keybinds-mode-map (kbd "C-c u u") 'me/upcase)
-(define-key me/keybinds-mode-map (kbd "C-c u l") 'me/downcase)
-(define-key me/keybinds-mode-map (kbd "C-c u d") 'duplicate-line)
-(define-key me/keybinds-mode-map (kbd "C-c u j") 'join-line)
-(define-key me/keybinds-mode-map (kbd "C-c C-d") 'duplicate-line)
-(define-key me/keybinds-mode-map (kbd "C-c C-j") 'join-line)
-(define-key me/keybinds-mode-map (kbd "C-c s") 'just-one-space)
-(define-key me/keybinds-mode-map (kbd "C-c z") 'zap-up-to-char)
-(define-key me/keybinds-mode-map (kbd "C-x [") (me/leave-msg "C-x [ is disabled"))
-(define-key me/keybinds-mode-map (kbd "C-x C-p") (me/leave-msg "C-x C-p is disabled"))
+(dolist (keybind `(("C-c o c" . me/goto-config)
+		   ("C-c o b" . me/goto-bashrc)
+		   ("C-c o d" . me/goto-documentation)
+		   ("C-c o s" . me/sudo-open)
+		   ("C-c o S" . me/sudo-dired)
+		   ("C-c o x" . persp-switch-to-scratch-buffer)
+		   ("C-c o r" . me/reload-file)
+		   ("C-c u u" . me/upcase)
+		   ("C-c u l" . me/downcase)
+		   ("C-c u d" . duplicate-line)
+		   ("C-c u j" . join-line)
+		   ("C-c C-d" . duplicate-line)
+		   ("C-c C-j" . join-line)
+		   ("C-c s" . just-one-space)
+		   ("C-c z" . zap-up-to-char)
+		   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
+		   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
+  (define-key me/keybinds-mode-map (kbd (car keybind)) (cdr keybind)))
+		  
 
 
 ;; TODO unset this once comfortable with ace-window
@@ -433,9 +396,8 @@
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
 (global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
-
-;; defaults to shift-{left,right,up,down}
-;; (windmove-default-keybindings)
+(global-set-key (kbd "M-n") 'flymake-goto-next-error)
+(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
 
 ;; Footer
 
