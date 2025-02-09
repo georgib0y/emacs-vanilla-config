@@ -216,7 +216,9 @@
 
 (use-package markdown-mode
   :ensure t
-  :mode ("README\\.md\\'" . gfm-mode)
+  :mode ("README\\.md\\'" . 'gfm-mode)
+  :hook (markdown-mode . flyspell-mode)
+  :hook (gfm-mode . flyspell-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package doom-themes
@@ -271,14 +273,17 @@
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
 	       '(rust-ts-mode . ("rust-analyzer"))
-	       '(go-ts-mode . ("gopls" "-remote=auto")))
-  (add-hook 'prog-mode-hook 'eglot-ensure))
+	       '(go-ts-mode . ("gopls" "-remote=auto"))))
 
-(add-hook 'org-mode-hook 'flyspell-mode)
+(defun me/eglot-setup ()
+  "Eglot setup."
+  (add-hook 'before-save-hook 'eglot-format))
 
-(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-							 (js . t)
-							 (python . t)))
+(add-hook 'prog-mode-hook 'me/eglot-setup)
+
+;; limit eldoc to max 10 lines
+(setq eldoc-echo-area-use-multiline-p 10)
+
 (add-hook 'prog-mode-hook 'electric-pair-mode)
 (defun me/inhibit-electric-pair-mode-p (char)
   "A predicate for when `electric-pair-mode' should be inhibited."
@@ -299,7 +304,8 @@
 
 (me/lang-setup "go"
 	       '(go-ts-mode-hook go-mod-ts-mode-hook)
-	       (setq tab-width 4))
+	       (setq tab-width 4
+		     go-ts-mode-indent-offset 4))
 
 (me/lang-setup "java"
 	       '(java-mode-hook)
@@ -347,6 +353,10 @@
 					      ("\\.ts\\'" . typescript-ts-mode)
 					      ("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
+(add-hook 'org-mode-hook 'flyspell-mode)
+(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							 (js . t)
+							 (python . t)))
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
