@@ -282,7 +282,8 @@
 	       '(rust-ts-mode . ("rust-analyzer"))
 	       '(go-ts-mode . ("gopls" "-remote=auto")))
 
-  (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions))
+  (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
+  (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
 
 
 
