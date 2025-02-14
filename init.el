@@ -270,16 +270,21 @@
 (require 'tramp)
 (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
 
+(require 'eglot)
 (with-eval-after-load 'eglot
+  (defun me/eglot-setup ()
+    "Eglot setup."
+    (add-hook 'before-save-hook 'eglot-format))
+
+  (add-hook 'prog-mode-hook 'me/eglot-setup)
+
   (add-to-list 'eglot-server-programs
 	       '(rust-ts-mode . ("rust-analyzer"))
-	       '(go-ts-mode . ("gopls" "-remote=auto"))))
+	       '(go-ts-mode . ("gopls" "-remote=auto")))
 
-(defun me/eglot-setup ()
-  "Eglot setup."
-  (add-hook 'before-save-hook 'eglot-format))
+  (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions))
 
-(add-hook 'prog-mode-hook 'me/eglot-setup)
+
 
 ;; limit eldoc to max 10 lines
 (setq eldoc-echo-area-use-multiline-p 10)
@@ -379,12 +384,12 @@
 		   ("C-c z" . zap-up-to-char)
 		   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
 		   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
-  (define-key me/keybinds-mode-map (kbd (car keybind)) (cdr keybind)))
+  (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
 
 
 ;; TODO unset this once comfortable with ace-window
-(global-set-key (kbd "C-x o") (me/leave-msg "C-x o is temporarily disabled, use ace-window M-o instead"))
+(keymap-global-set "C-x o" (me/leave-msg "C-x o is temporarily disabled, use ace-window M-o instead"))
 
 ;; Keybinds
 (define-minor-mode me/keybinds-mode
@@ -403,11 +408,11 @@
 (add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
 
 ;; these globals cannot be set in my mode because they do not have a prefix
-(global-set-key (kbd "M-n") 'flymake-goto-next-error)
-(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
-(global-set-key (kbd "C-<tab>") 'me/quick-switch-buffer)
-(global-set-key (kbd "M-n") 'flymake-goto-next-error)
-(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+(keymap-global-set "M-n" 'flymake-goto-next-error)
+(keymap-global-set "M-p" 'flymake-goto-prev-error)
+(keymap-global-set "C-<tab>" 'me/quick-switch-buffer)
+(keymap-global-set "M-n" 'flymake-goto-next-error)
+(keymap-global-set "M-p"' flymake-goto-prev-error)
 
 ;; Footer
 
