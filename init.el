@@ -40,10 +40,14 @@
 ;; General functions
 (require 'cl-lib)
 
-(defun me/add-multiple-to-alists (alist to-add)
+(defun me/alist-add-many (alist to-add)
   "Add all items in TO-ADD into ALIST."
   (dolist (element to-add)
     (add-to-list alist element)))
+
+;; (defun me/rm-from-alist (alist key)
+;;   "Removes 'key' from 'alist'."
+;;   (setq alist (delq (assoc key alist) alist)))
 
 (defun me/goto-config ()
   "Opens my init.el file."
@@ -105,8 +109,15 @@
 	(message "%s" ,msg)
       nil)))
 
-;; Ui
+(defun me/region-len ()
+  "Prints the lenght of the current region if it is active."
+  (interactive)
+  (if (use-region-p)
+      (message "Region length: %d" (- (region-end) (region-beginning)))
+    (message "No active region")))
 
+
+;; Ui
 (setq inhibit-startup-screen t
       visible-bell t
       column-number-mode t)
@@ -277,12 +288,16 @@
   (defun me/eglot-setup ()
     "Eglot setup."
     (add-hook 'before-save-hook 'eglot-format))
-
+  
   (add-hook 'prog-mode-hook 'me/eglot-setup)
+  (me/alist-add-many 'eglot-server-programs
+		       `((rust-ts-mode . ("rust-analyzer"))
+			 (go-ts-mode . ("gopls" "-remote=auto"))
+			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+					  :initializationOptions (:hints (nil))))))
 
-  (add-to-list 'eglot-server-programs
-	       '(rust-ts-mode . ("rust-analyzer"))
-	       '(go-ts-mode . ("gopls" "-remote=auto")))
+  ;; java ls needs a little more work
+  
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
@@ -326,10 +341,12 @@
       '((bash "https://github.com/tree-sitter/tree-sitter-bash")
 	(cmake "https://github.com/uyha/tree-sitter-cmake")
 	(css "https://github.com/tree-sitter/tree-sitter-css")
+	(dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
 	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
 	(go "https://github.com/tree-sitter/tree-sitter-go" "v0.19.1")
 	(gomod "https://github.com/camdencheek/tree-sitter-go-mod")
 	(html "https://github.com/tree-sitter/tree-sitter-html")
+	(java "https://github.com/tree-sitter/tree-sitter-java")
 	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
 	(json "https://github.com/tree-sitter/tree-sitter-json")
 	(make "https://github.com/alemuller/tree-sitter-make")
@@ -339,27 +356,29 @@
 	(toml "https://github.com/tree-sitter/tree-sitter-toml")
 	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
 	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	(yaml "https://github.com/ikatyang/tree-sitter-yaml")
-	(dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")))
+	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
-(defun me/install-all-treesiter-grammars ()
+
+(defun me/install-all-treesitter-grammars ()
   "Install all treesitter grammars listed in `treesit-language-source-alist'."
   (interactive)
-  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist)))
+  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
+  (message "Installed all treesitter grammars"))
 
 (setq major-mode-remap-alist
       '((bash-mode . bash-ts-mode)
 	(css-mode . css-ts-mode)
 	(js2-mode . js-ts-mode)
-	(json-mode . json-ts-mode)
+	(js-json-mode . json-ts-mode)
 	(python-mode . python-ts-mode)
-	(yaml-mode . yaml-ts-mode)))
+	(yaml-mode . yaml-ts-mode)
+	(java-mode . java-ts-mode)))
 
-(me/add-multiple-to-alists 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
-					      ("\\.go\\'" . go-ts-mode)
-					      ("\\.rs\\'" . rust-ts-mode)
-					      ("\\.ts\\'" . typescript-ts-mode)
-					      ("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
+(me/alist-add-many 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
+					("\\.go\\'" . go-ts-mode)
+					("\\.rs\\'" . rust-ts-mode)
+					("\\.ts\\'" . typescript-ts-mode)
+					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
 (add-hook 'org-mode-hook 'flyspell-mode)
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
@@ -418,6 +437,10 @@
 (keymap-global-set "M-p"' flymake-goto-prev-error)
 
 ;; Footer
+(unless (server-running-p)
+  (server-start t))
+
+
 
 (provide 'init)
 ;;; init.el ends here
