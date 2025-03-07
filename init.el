@@ -116,7 +116,9 @@
 (scroll-bar-mode -1)
 (global-display-line-numbers-mode t)
 (global-hl-line-mode 1)
+
 (pixel-scroll-mode 1)
+(pixel-scroll-precision-mode 1)
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
