@@ -116,6 +116,9 @@
       (message "Region length: %d" (- (region-end) (region-beginning)))
     (message "No active region")))
 
+(defun me/pick-rand (list)
+  "Returns a random item from `list'."
+  (nth (random (length list)) list))
 
 ;; Ui
 (setq inhibit-startup-screen t
@@ -239,7 +242,15 @@
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
-  (load-theme 'doom-xcode)
+
+  (let ((nice-themes '(doom-xcode
+		       doom-one
+		       doom-1337
+		       doom-dark+
+		       doom-dracula
+		       doom-gruvbox)))
+    (load-theme (me/pick-rand nice-themes)))
+  ;; (load-theme 'doom-xcode)
 
   (doom-themes-visual-bell-config)
   (doom-themes-org-config))
@@ -293,8 +304,9 @@
   (me/alist-add-many 'eglot-server-programs
 		       `((rust-ts-mode . ("rust-analyzer"))
 			 (go-ts-mode . ("gopls" "-remote=auto"))
-			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
-					  :initializationOptions (:hints (nil))))))
+			 ;; https://download.eclipse.org/jdtls/milestones/
+			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")))))
+					  ;; :initializationOptions (:hints (nil))))))
 
   ;; java ls needs a little more work
   
@@ -435,6 +447,7 @@
 (keymap-global-set "C-<tab>" 'me/quick-switch-buffer)
 (keymap-global-set "M-n" 'flymake-goto-next-error)
 (keymap-global-set "M-p"' flymake-goto-prev-error)
+
 
 ;; Footer
 (unless (server-running-p)
