@@ -120,6 +120,12 @@
   "Returns a random item from `list'."
   (nth (random (length list)) list))
 
+(defun me/random-u64-str-at-point ()
+  "Prints a random string of characters up to max u64"
+  (interactive)
+  (let ((max64 #xffffffffffffffff))
+    (insert (format "%d" (random max64)))))
+
 ;; Ui
 (setq inhibit-startup-screen t
       visible-bell t
@@ -149,10 +155,15 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+(setq case-replace nil)
+
 ;; completions setup
-(setq completion-auto-select t)
-(setq completions-max-height 20)
-(setq completions-format 'one-column)
+(setq completion-auto-select t
+      completions-max-height 20
+      completions-format 'one-column
+      read-file-name-completion-ignore-case t
+      read-buffer-completion-ignore-case t
+      completion-ignore-case t)
 
 ;; font size
 (set-face-attribute 'default nil :height 140)
@@ -233,8 +244,8 @@
 (use-package markdown-mode
   :ensure t
   :mode ("README\\.md\\'" . 'gfm-mode)
-  :hook (markdown-mode . flyspell-mode)
-  :hook (gfm-mode . flyspell-mode)
+  ;; :hook (markdown-mode . flyspell-mode)
+  ;; :hook (gfm-mode . flyspell-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package doom-themes
@@ -298,15 +309,17 @@
 (with-eval-after-load 'eglot
   (defun me/eglot-setup ()
     "Eglot setup."
-    (add-hook 'before-save-hook 'eglot-format))
+    (add-hook 'before-save-hook 'eglot-format)
+    (eglot-inlay-hints-mode -1))
   
-  (add-hook 'prog-mode-hook 'me/eglot-setup)
+  (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
+  
   (me/alist-add-many 'eglot-server-programs
 		       `((rust-ts-mode . ("rust-analyzer"))
 			 (go-ts-mode . ("gopls" "-remote=auto"))
 			 ;; https://download.eclipse.org/jdtls/milestones/
-			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")))))
-					  ;; :initializationOptions (:hints (nil))))))
+			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+					  :initializationOptions (:hints (nil))))))
 
   ;; java ls needs a little more work
   
@@ -392,7 +405,7 @@
 					("\\.ts\\'" . typescript-ts-mode)
 					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
-(add-hook 'org-mode-hook 'flyspell-mode)
+;; (add-hook 'org-mode-hook 'flyspell-mode)
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
 							 (js . t)
 							 (python . t)))
@@ -401,23 +414,24 @@
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 (defvar me/keybinds-mode-map (make-sparse-keymap))
-(dolist (keybind `(("C-c o c" . me/goto-config)
-		   ("C-c o b" . me/goto-bashrc)
-		   ("C-c o d" . me/goto-documentation)
-		   ("C-c o s" . me/sudo-open)
-		   ("C-c o S" . me/sudo-dired)
-		   ("C-c o x" . persp-switch-to-scratch-buffer)
-		   ("C-c o r" . me/reload-file)
-		   ("C-c u u" . me/upcase)
-		   ("C-c u l" . me/downcase)
-		   ("C-c u d" . duplicate-line)
-		   ("C-c u j" . join-line)
-		   ("C-c C-d" . duplicate-line)
-		   ("C-c C-j" . join-line)
-		   ("C-c s" . just-one-space)
-		   ("C-c z" . zap-up-to-char)
-		   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
-		   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
+(dolist (keybind
+	 `(("C-c o c" . me/goto-config)
+	   ("C-c o b" . me/goto-bashrc)
+	   ("C-c o d" . me/goto-documentation)
+	   ("C-c o s" . me/sudo-open)
+	   ("C-c o S" . me/sudo-dired)
+	   ("C-c o x" . persp-switch-to-scratch-buffer)
+	   ("C-c o r" . me/reload-file)
+	   ("C-c u u" . me/upcase)
+	   ("C-c u l" . me/downcase)
+	   ("C-c u d" . duplicate-line)
+	   ("C-c u j" . join-line)
+	   ("C-c C-d" . duplicate-line)
+	   ("C-c C-j" . join-line)
+	   ("C-c s" . just-one-space)
+	   ("C-c z" . zap-up-to-char)
+	   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
+	   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
 
