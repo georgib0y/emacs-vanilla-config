@@ -195,16 +195,6 @@
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
   (setq aw-background nil))
 
-;; TODO consult?
-(use-package consult
-  :ensure t
-  :config
-  (setq completion-in-region-function
-	(lambda (&rest args)
-	  (apply (if vertico-mode
-		     #'consult-completion-in-region
-		   #'completion--in-region-1)
-		 args))))
 
 (use-package orderless
   :ensure t
@@ -236,6 +226,24 @@
   (setq enable-recursive-minibuffers t)
   (setq read-extended-command-predicate #'command-completion-default-include-p))
 
+(use-package consult
+  :ensure t
+  :after vertico
+  :init
+  ;; Tweak the register preview for `consult-register-load',
+  ;; `consult-register-store' and the built-in commands.  This improves the
+  ;; register formatting, adds thin separator lines, register sorting and hides
+  ;; the window mode line.
+  (advice-add #'register-preview :override #'consult-register-window)
+  (setq register-preview-delay 0.5)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+  
+  :config
+  (setq completion-in-region-function #'consult-completion-in-region))
+
 (use-package magit
   :ensure t
   :config
@@ -253,18 +261,34 @@
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
-
-  (let ((nice-themes '(doom-xcode
-		       doom-one
-		       doom-1337
-		       doom-dark+
-		       doom-dracula
-		       doom-gruvbox)))
-    (load-theme (me/pick-rand nice-themes)))
-  ;; (load-theme 'doom-xcode)
-
   (doom-themes-visual-bell-config)
-  (doom-themes-org-config))
+  (doom-themes-org-config)
+
+  (setq nice-themes '(doom-xcode
+		      doom-1337
+		      doom-dracula
+		      doom-gruvbox
+		      doom-badger
+		      doom-challenger-deep))
+
+  (defun me/pick-random-theme ()
+    (interactive)
+    "Loads a random theme from `nice-themes'"
+    (let ((theme (me/pick-rand nice-themes)))
+      ;; make sure to not set the theme to the same thing
+      (while (eq (car custom-enabled-themes) theme)
+	(setq theme (me/pick-rand nice-themes)))
+      (load-theme theme)
+      (when (called-interactively-p)
+	(message "Loaded %s theme" theme))))
+
+  (me/pick-random-theme)
+
+  (defun me/change-theme-on-project (orig-fun &rest args)
+    (me/pick-random-theme)
+    (apply orig-fun args))
+  
+  (advice-add 'project-switch-project :around #'me/change-theme-on-project))
 
 (use-package perspective
   :ensure t
@@ -458,7 +482,6 @@
 ;; these globals cannot be set in my mode because they do not have a prefix
 (keymap-global-set "M-n" 'flymake-goto-next-error)
 (keymap-global-set "M-p" 'flymake-goto-prev-error)
-(keymap-global-set "C-<tab>" 'me/quick-switch-buffer)
 (keymap-global-set "M-n" 'flymake-goto-next-error)
 (keymap-global-set "M-p"' flymake-goto-prev-error)
 
