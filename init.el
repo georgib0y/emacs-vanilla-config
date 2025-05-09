@@ -48,7 +48,7 @@
     (add-to-list alist element)))
 
 (defun me/rm-from-alist (alist key)
-  "Removes 'key' from 'alist'."
+  "Remove `KEY' from `ALIST'."
   (setq alist (delq (assoc key alist) alist)))
 
 (defun me/sudo-open (path)
@@ -85,11 +85,11 @@
     (message "No active region")))
 
 (defun me/pick-rand (list)
-  "Returns a random item from `list'."
+  "Return a random item from `LIST'."
   (nth (random (length list)) list))
 
 (defun me/random-u64-str-at-point ()
-  "Prints a random string of characters up to max u64"
+  "Prints a random string of characters up to max u64."
   (interactive)
   (let ((max64 #xffffffffffffffff))
     (insert (format "%d" (random max64)))))
@@ -149,6 +149,12 @@
   (package-install 'use-package)
   (eval-when-compile (require 'use-package)))
 
+(use-package hl-todo
+  :ensure t
+  :config
+  (add-hook 'flymake-diagnostic-functions 'hl-todo-flymake)
+  (global-hl-todo-mode 1))
+
 (require 'flymake)
 (with-eval-after-load 'flymake
   (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
@@ -157,6 +163,8 @@
 (use-package which-key
   :ensure t
   :config (which-key-mode))
+
+
 
 (use-package ace-window
   :ensure t
@@ -172,12 +180,11 @@
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles partial-completion))))
   :config
-  (setq completion-sort 'orderless))
+  (setq completions-sort 'orderless))
 
 (use-package vertico
   :ensure t
-  :hook
-  ('cursor-intangible-mode . 'minibuffer-setup-hook)
+  :hook (minibuffer-setup . cursor-intangible-mode)
   :init
   (defun crm-indicator (args)
     "Add prompt indicator to `completing-read-multiple'.
@@ -233,28 +240,28 @@
   (doom-themes-visual-bell-config)
   (doom-themes-org-config)
 
-  (setq nice-themes '(doom-xcode
+  (defvar nice-themes '(doom-xcode
 		      doom-dracula
 		      doom-gruvbox
 		      doom-badger
 		      doom-Iosvkem
 		      doom-challenger-deep
-		      doom-city-lights
-		      doom-henna
 		      doom-miramare
-		      doom-molokai-pro
 		      doom-rouge
 		      doom-snazzy))
 
   (defun me/pick-random-theme ()
-    (interactive)
     "Loads a random theme from `nice-themes'"
-    (let ((theme (me/pick-rand nice-themes)))
+    (interactive)
+    (let ((curr (car custom-enabled-themes))
+	  (theme (me/pick-rand nice-themes)))
       ;; make sure to not set the theme to the same thing
-      (while (eq (car custom-enabled-themes) theme)
+      (while (eq curr theme)
 	(setq theme (me/pick-rand nice-themes)))
       (load-theme theme)
-      (when (called-interactively-p)
+      (sleep-for 0.1) ;; sleep for a small amount of time to stop flickering when changing theme
+      (disable-theme curr)
+      (when (called-interactively-p 'interactive)
 	(message "Loaded %s theme" theme))))
 
   (me/pick-random-theme)
@@ -276,13 +283,6 @@
 (use-package pyvenv
   :ensure t)
 
-(use-package hl-todo
-  :ensure t
-  :after flymake
-  :hook (hl-todo-flymake . flymake-diagnostic-functions)
-  :config
-  (global-hl-todo-mode))
-
 ;; required by zig mode
 (use-package reformatter
   :ensure t)
@@ -302,6 +302,10 @@
   (defun me/eglot-setup ()
     "Eglot setup."
     (add-hook 'before-save-hook 'eglot-format)
+    ;; need to put hltodo here as well as above since eglot replaces
+    ;; the flymake backend with it's own
+    ;; it may cause problems having this 
+    (add-hook 'flymake-diagnostic-functions 'hl-todo-flymake)
     (eglot-inlay-hints-mode -1))
   
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
@@ -329,7 +333,7 @@
 
 ;; (defmacro me/lang-setup (name hooks &rest body)
 (defmacro me/lang-setup (NAME HOOKS &rest BODY)
-  "Create a setup func with the `name' and as it to each hook in `HOOKS'."
+  "Create a setup func with the `NAME' and `BODY'.  Add it to each hook in `HOOKS'."
   `(progn
      (defun ,(intern (concat "me/" NAME "-setup")) () ,@BODY)
      (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
@@ -414,7 +418,7 @@
 		  
 ;; Keybinds
 (define-minor-mode me/keybinds-mode
-  "Toggle my personal keybindings"
+  "Toggle my personal keybindings."
   :global t
   :lighter " keys"
   :keymap me/keybinds-mode-map)
