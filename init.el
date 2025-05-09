@@ -36,6 +36,8 @@
       '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
 	(".*" "~/.config/emacs/auto-saves/" t)))
 
+;; registers
+(set-register ?c `(file . ,user-init-file))
 
 ;; General functions
 (require 'cl-lib)
@@ -45,24 +47,9 @@
   (dolist (element to-add)
     (add-to-list alist element)))
 
-;; (defun me/rm-from-alist (alist key)
-;;   "Removes 'key' from 'alist'."
-;;   (setq alist (delq (assoc key alist) alist)))
-
-(defun me/goto-config ()
-  "Opens my init.el file."
-  (interactive)
-  (find-file user-init-file))
-
-(defun me/goto-bashrc ()
-  "Opens my .bashrc file."
-  (interactive)
-  (find-file "~/.bashrc"))
-
-(defun me/goto-documentation ()
-  "Opens ~/Documents/Documentation.org."
-  (interactive)
-  (find-file "~/Documents/Documentation.org"))
+(defun me/rm-from-alist (alist key)
+  "Removes 'key' from 'alist'."
+  (setq alist (delq (assoc key alist) alist)))
 
 (defun me/sudo-open (path)
   "Like `find-file' but opens PATH as root."
@@ -81,25 +68,6 @@
     (find-alternate-file buffer-file-name)
     (goto-char pos)))
 
-(defun me/quick-switch-buffer ()
-  "Switche to the last used, non-visible buffer."
-  (interactive)
-  (switch-to-buffer nil))
-
-(defun me/upcase ()
-  "Upcase the highlighed region or otherwise upcase the char under cursor."
-  (interactive)
-  (let ((start (if mark-active (region-beginning) (point)))
-	(end (if mark-active (region-end) (+ (point) 1))))
-    (upcase-region start end)))
-
-(defun me/downcase ()
-  "Downcase the highlighted region or otherwise downcase the char under the cursor."
-  (interactive)
-  (let ((start (if mark-active (region-beginning) (point)))
-	(end (if mark-active (region-end) (+ (point) 1))))
-    (downcase-region start end)))
-
 (defun me/leave-msg (msg)
   "Create a functoin that rings the bell, print why with `MSG'."
   `(lambda ()
@@ -110,7 +78,7 @@
       nil)))
 
 (defun me/region-len ()
-  "Prints the lenght of the current region if it is active."
+  "Prints the length of the current region if it is active."
   (interactive)
   (if (use-region-p)
       (message "Region length: %d" (- (region-end) (region-beginning)))
@@ -173,9 +141,6 @@
 ;; Add repos and ensure use-package is installed
 (require 'package)
 
-;; slightly improves startup time apparently
-(setq package-enable-at-startup nil)
-
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
 ;; install use-pacakge if not already present
@@ -183,6 +148,11 @@
   (package-refresh-contents)
   (package-install 'use-package)
   (eval-when-compile (require 'use-package)))
+
+(require 'flymake)
+(with-eval-after-load 'flymake
+  (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
+  (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
 (use-package which-key
   :ensure t
@@ -194,7 +164,6 @@
   :config
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
   (setq aw-background nil))
-
 
 (use-package orderless
   :ensure t
@@ -265,11 +234,17 @@
   (doom-themes-org-config)
 
   (setq nice-themes '(doom-xcode
-		      doom-1337
 		      doom-dracula
 		      doom-gruvbox
 		      doom-badger
-		      doom-challenger-deep))
+		      doom-Iosvkem
+		      doom-challenger-deep
+		      doom-city-lights
+		      doom-henna
+		      doom-miramare
+		      doom-molokai-pro
+		      doom-rouge
+		      doom-snazzy))
 
   (defun me/pick-random-theme ()
     (interactive)
@@ -284,21 +259,11 @@
 
   (me/pick-random-theme)
 
-  (defun me/change-theme-on-project (orig-fun &rest args)
+  (defun me/change-theme-on-project-advice (orig-fun &rest args)
     (me/pick-random-theme)
     (apply orig-fun args))
   
-  (advice-add 'project-switch-project :around #'me/change-theme-on-project))
-
-(use-package perspective
-  :ensure t
-  :bind
-  ;; ("C-x b" . persp-switch-buffer)
-  ;; ("C-x C-b" . persp-buffer-menu)
-  :custom
-  (persp-mode-prefix-key (kbd "C-z"))
-  :init
-  (persp-mode))
+  (advice-add 'project-switch-project :around #'me/change-theme-on-project-advice))
 
 (use-package yasnippet
   :ensure t
@@ -313,16 +278,19 @@
 
 (use-package hl-todo
   :ensure t
+  :after flymake
+  :hook (hl-todo-flymake . flymake-diagnostic-functions)
   :config
-  (global-hl-todo-mode)
-  (add-to-list 'flymake-diagnostic-functions 'hl-todo-flymake))
-
+  (global-hl-todo-mode))
 
 ;; required by zig mode
 (use-package reformatter
   :ensure t)
 
 (use-package zig-mode
+  :ensure t)
+
+(use-package haskell-mode
   :ensure t)
 
 ;; Language stuff
@@ -339,19 +307,15 @@
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
   
   (me/alist-add-many 'eglot-server-programs
-		       `((rust-ts-mode . ("rust-analyzer"))
-			 (go-ts-mode . ("gopls" "-remote=auto"))
-			 ;; https://download.eclipse.org/jdtls/milestones/
-			 (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
-					  :initializationOptions (:hints (nil))))))
-
-  ;; java ls needs a little more work
-  
+		     `((rust-ts-mode . ("rust-analyzer"))
+		       (go-ts-mode . ("gopls" "-remote=auto"))
+		       ;; https://download.eclipse.org/jdtls/milestones/
+		       (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+					:initializationOptions (:hints (nil))))
+		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))))
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
-
-
 
 ;; limit eldoc to max 10 lines
 (setq eldoc-echo-area-use-multiline-p 10)
@@ -407,7 +371,6 @@
 	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
 	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
-
 (defun me/install-all-treesitter-grammars ()
   "Install all treesitter grammars listed in `treesit-language-source-alist'."
   (interactive)
@@ -429,7 +392,6 @@
 					("\\.ts\\'" . typescript-ts-mode)
 					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
-;; (add-hook 'org-mode-hook 'flyspell-mode)
 (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
 							 (js . t)
 							 (python . t)))
@@ -439,30 +401,17 @@
 
 (defvar me/keybinds-mode-map (make-sparse-keymap))
 (dolist (keybind
-	 `(("C-c o c" . me/goto-config)
-	   ("C-c o b" . me/goto-bashrc)
-	   ("C-c o d" . me/goto-documentation)
-	   ("C-c o s" . me/sudo-open)
+	 `(("C-c o s" . me/sudo-open)
 	   ("C-c o S" . me/sudo-dired)
-	   ("C-c o x" . persp-switch-to-scratch-buffer)
+	   ("C-c o x" . scratch-buffer)
 	   ("C-c o r" . me/reload-file)
-	   ("C-c u u" . me/upcase)
-	   ("C-c u l" . me/downcase)
-	   ("C-c u d" . duplicate-line)
-	   ("C-c u j" . join-line)
 	   ("C-c C-d" . duplicate-line)
-	   ("C-c C-j" . join-line)
 	   ("C-c s" . just-one-space)
 	   ("C-c z" . zap-up-to-char)
 	   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
 	   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
-
-
-;; TODO unset this once comfortable with ace-window
-(keymap-global-set "C-x o" (me/leave-msg "C-x o is temporarily disabled, use ace-window M-o instead"))
-
 ;; Keybinds
 (define-minor-mode me/keybinds-mode
   "Toggle my personal keybindings"
@@ -478,19 +427,6 @@
 
 ;; run this hook after everything else
 (add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
-
-;; these globals cannot be set in my mode because they do not have a prefix
-(keymap-global-set "M-n" 'flymake-goto-next-error)
-(keymap-global-set "M-p" 'flymake-goto-prev-error)
-(keymap-global-set "M-n" 'flymake-goto-next-error)
-(keymap-global-set "M-p"' flymake-goto-prev-error)
-
-
-;; Footer
-(unless (server-running-p)
-  (server-start t))
-
-
 
 (provide 'init)
 ;;; init.el ends here
