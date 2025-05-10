@@ -1,23 +1,23 @@
 ;;; package --- Summary  -*- lexical-binding: t; -*-
-;; My emacs configuration
+;;; Commentary:
+;; My Emacs configuration
 
+;;; Code:
 ;; GC and Buffer Sizes
 ;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
-(setq gc-cons-threshold (* 10 1024 1024))
-(setq read-process-output-max (* 1024 1024)) ; 1mb
+(setq gc-cons-threshold (* 100 1024 1024)) ;100mb (as rec. by lsp-mode)
+(setq read-process-output-max (* 1024 1024)) ; 1mb (/proc/sys/fs/pipe-max-size)
 
 ;; Customise file
-;; Move the customise variables into their own file.
-;; move customise variables to their own file
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
   (setq custom-file customise-file)
   (load customise-file t)) ;; create file if no exist
 
 ;; Backup file
 ;; Put any backup files in the .conf folder instead of in the working dir
-;; place file backups in conf emacs instead of littered around the pace
-(setq backup-directory-alist '(("." . "~/.config/emacs/backups"))
-      backup-by-copying t ;; dont delink hardlinks
+;; place file backups in conf emacs instead of littered around the place
+(setq backup-directory-alist `(("." . ,(expand-file-name "backups" user-emacs-directory)))
+      backup-by-copying t
       version-control t
       delete-old-versions t)
 
@@ -149,14 +149,9 @@
   (package-install 'use-package)
   (eval-when-compile (require 'use-package)))
 
-(use-package hl-todo
-  :ensure t
-  :config
-  (add-hook 'flymake-diagnostic-functions 'hl-todo-flymake)
-  (global-hl-todo-mode 1))
-
 (require 'flymake)
 (with-eval-after-load 'flymake
+  (flymake-mode 1)
   (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
   (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
@@ -164,9 +159,9 @@
   :ensure t
   :config (which-key-mode))
 
-
-
 (use-package ace-window
+  :defines (aw-keys
+	    aw-background)
   :ensure t
   :bind ("M-o" . ace-window)
   :config
@@ -183,6 +178,9 @@
   (setq completions-sort 'orderless))
 
 (use-package vertico
+  :defines crm-separator
+  :functions (vertico-mode
+	      crm-indicator)
   :ensure t
   :hook (minibuffer-setup . cursor-intangible-mode)
   :init
@@ -202,7 +200,11 @@
   (setq enable-recursive-minibuffers t)
   (setq read-extended-command-predicate #'command-completion-default-include-p))
 
+(require 'xref)
 (use-package consult
+  :functions (consult-register-window
+	      consult-xref
+	      consult-completion-in-region)
   :ensure t
   :after vertico
   :init
@@ -221,11 +223,13 @@
   (setq completion-in-region-function #'consult-completion-in-region))
 
 (use-package magit
+  :defines magit-define-global-key-bindings
   :ensure t
   :config
   (setq magit-define-global-key-bindings 'recommended))
 
 (use-package markdown-mode
+  :defines markdown-command
   :ensure t
   :mode ("README\\.md\\'" . 'gfm-mode)
   ;; :hook (markdown-mode . flyspell-mode)
@@ -233,6 +237,12 @@
   :init (setq markdown-command "multimarkdown"))
 
 (use-package doom-themes
+  :defines (doom-themes-enable-bold
+	    doom-themes-enable-italic)
+  :functions (doom-themes-visual-bell-config
+	      doom-themes-org-config
+	      me/pick-random-theme
+	      me/change-theme-on-project-advice)
   :ensure t
   :config
   (setq doom-themes-enable-bold t
@@ -273,6 +283,7 @@
   (advice-add 'project-switch-project :around #'me/change-theme-on-project-advice))
 
 (use-package yasnippet
+  :functions yas-global-mode
   :ensure t
   :init
   (yas-global-mode 1))
@@ -302,10 +313,6 @@
   (defun me/eglot-setup ()
     "Eglot setup."
     (add-hook 'before-save-hook 'eglot-format)
-    ;; need to put hltodo here as well as above since eglot replaces
-    ;; the flymake backend with it's own
-    ;; it may cause problems having this 
-    (add-hook 'flymake-diagnostic-functions 'hl-todo-flymake)
     (eglot-inlay-hints-mode -1))
   
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
@@ -324,9 +331,10 @@
 ;; limit eldoc to max 10 lines
 (setq eldoc-echo-area-use-multiline-p 10)
 
+(require 'elec-pair)
 (add-hook 'prog-mode-hook 'electric-pair-mode)
 (defun me/inhibit-electric-pair-mode-p (char)
-  "A predicate for when `electric-pair-mode' should be inhibited."
+  "A predicate based on `CHAR' for when `electric-pair-mode' should be inhibited."
   (or (minibufferp) (electric-pair-default-inhibit char)))
 
 (setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p)
@@ -342,11 +350,13 @@
 	       '(typescript-ts-mode-hook js-mode-hook)
 	       (setq tab-width 4))
 
+(require 'go-ts-mode)
 (me/lang-setup "go"
 	       '(go-ts-mode-hook go-mod-ts-mode-hook)
 	       (setq tab-width 4
 		     go-ts-mode-indent-offset 4))
 
+(require 'cc-vars)
 (me/lang-setup "java"
 	       '(java-mode-hook)
 	       (indent-tabs-mode nil)
@@ -421,7 +431,8 @@
   "Toggle my personal keybindings."
   :global t
   :lighter " keys"
-  :keymap me/keybinds-mode-map)
+  :keymap me/keybinds-mode-map
+  :group 'me)
 
 (me/keybinds-mode 1)
 
