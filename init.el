@@ -84,6 +84,13 @@
       (message "Region length: %d" (- (region-end) (region-beginning)))
     (message "No active region")))
 
+(defun me/count-lines-reigon ()
+  "Print the number of lines in the current region if it is active."
+  (interactive)
+  (if (use-region-p)
+      (message "Region line count: %d" (count-lines (region-beginning) (region-end)))
+    (message "No active region")))
+
 (defun me/pick-rand (list)
   "Return a random item from `LIST'."
   (nth (random (length list)) list))
@@ -168,6 +175,14 @@
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
   (setq aw-background nil))
 
+(use-package hl-todo
+  :ensure t
+  :bind (:map hl-todo-mode-map
+	 ("C-c n". hl-todo-next)
+	 ("C-c p". hl-todo-previous))
+  :config
+  (global-hl-todo-mode))
+
 (use-package orderless
   :ensure t
   :custom
@@ -251,7 +266,6 @@
   (doom-themes-org-config)
 
   (defvar nice-themes '(doom-xcode
-		      doom-dracula
 		      doom-gruvbox
 		      doom-badger
 		      doom-Iosvkem
@@ -423,7 +437,8 @@
 	   ("C-c s" . just-one-space)
 	   ("C-c z" . zap-up-to-char)
 	   ("C-x [" . ,(me/leave-msg "C-x [ is disabled"))
-	   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))))
+	   ("C-x C-p" . ,(me/leave-msg "C-x C-p is disabled"))
+	   ("C-c l" . me/count-lines-reigon)))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
 ;; Keybinds
