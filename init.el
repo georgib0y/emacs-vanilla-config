@@ -101,6 +101,12 @@
   (let ((max64 #xffffffffffffffff))
     (insert (format "%d" (random max64)))))
 
+(defun me/read-file-as-str (filename)
+  "Returns the contents of `filename' as a string"
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (buffer-string)))
+
 ;; Ui
 (setq inhibit-startup-screen t
       visible-bell t
@@ -316,6 +322,16 @@
   :ensure t)
 
 (use-package haskell-mode
+  :ensure t)
+
+(use-package gptel
+  :ensure t
+  :config
+  (let (token (me/read-file-as-str (concat user-emacs-directory "gpt_token")))
+    (unless (string-empty-p token)
+      (setq gptel-api-key token))))
+
+(use-package meson-mode
   :ensure t)
 
 ;; Language stuff
