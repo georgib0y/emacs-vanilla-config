@@ -147,7 +147,7 @@
       completion-ignore-case t)
 
 ;; font size
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 120 :weight 'medium)
 
 
 ;; Setup
@@ -292,15 +292,15 @@
       (sleep-for 0.1) ;; sleep for a small amount of time to stop flickering when changing theme
       (disable-theme curr)
       (when (called-interactively-p 'interactive)
-	(message "Loaded %s theme" theme))))
+	(message "Loaded %s theme" theme)))))
 
-  (me/pick-random-theme)
+  ;; (me/pick-random-theme)
 
-  (defun me/change-theme-on-project-advice (orig-fun &rest args)
-    (me/pick-random-theme)
-    (apply orig-fun args))
+  ;; (defun me/change-theme-on-project-advice (orig-fun &rest args)
+  ;;   (me/pick-random-theme)
+  ;;   (apply orig-fun args))
   
-  (advice-add 'project-switch-project :around #'me/change-theme-on-project-advice))
+  ;; (advice-add 'project-switch-project :around #'me/change-theme-on-project-advice))
 
 (use-package yasnippet
   :functions yas-global-mode
@@ -334,6 +334,15 @@
 (use-package meson-mode
   :ensure t)
 
+(use-package powershell
+  :ensure t
+  :config
+  ;; Change default compile command for powershell
+  (add-hook 'powershell-mode-hook
+	    (lambda () (set
+			(make-local-variable 'compile-command)
+			(format "powershell.exe -NoLogo -NonInteractive -Command \"& '%s'\""
+				(buffer-file-name))))))
 ;; Language stuff
 (require 'tramp)
 (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
@@ -342,7 +351,8 @@
 (with-eval-after-load 'eglot
   (defun me/eglot-setup ()
     "Eglot setup."
-    (add-hook 'before-save-hook 'eglot-format)
+    ;; TODO fix this more proper
+    ;; (add-hook 'before-save-hook 'eglot-format)
     (eglot-inlay-hints-mode -1))
   
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
@@ -353,8 +363,9 @@
 		       ;; https://download.eclipse.org/jdtls/milestones/
 		       (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
 					:initializationOptions (:hints (nil))))
-		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))))
-
+		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
+		       (powershell-mode . ("pwsh" "-NoLogo" "-NoProfile" "-Command" "c:/Users/george.b/AppData/Roaming/.emacs.d/lsp/PowerShellEditorServices/Start-EditorServices.ps1" "-Stdio"))))
+		
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
 
