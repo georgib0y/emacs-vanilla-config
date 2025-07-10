@@ -149,7 +149,6 @@
 ;; font size
 (set-face-attribute 'default nil :height 140)
 
-
 ;; Setup
 ;; Add repos and ensure use-package is installed
 (require 'package)
@@ -182,12 +181,16 @@
   (setq aw-background nil))
 
 (use-package hl-todo
+  :functions (global-hl-todo-mode
+	    hl-todo-mode-map
+	    hl-todo-next
+	    hl-todo-previous)
   :ensure t
   :bind (:map hl-todo-mode-map
-	 ("C-c n". hl-todo-next)
-	 ("C-c p". hl-todo-previous))
-  :config
-  (global-hl-todo-mode))
+	      ("C-c C-n" . hl-todo-next)
+	      ("C-c C-p" . hl-todo-previous))
+  :init
+  (global-hl-todo-mode 1))
 
 (use-package orderless
   :ensure t
@@ -274,7 +277,6 @@
   (defvar nice-themes '(doom-xcode
 		      doom-gruvbox
 		      doom-badger
-		      doom-Iosvkem
 		      doom-challenger-deep
 		      doom-miramare
 		      doom-rouge
@@ -327,11 +329,14 @@
 (use-package gptel
   :ensure t
   :config
-  (let (token (me/read-file-as-str (concat user-emacs-directory "gpt_token")))
+  (let ((token (me/read-file-as-str (concat user-emacs-directory "gpt_token"))))
     (unless (string-empty-p token)
       (setq gptel-api-key token))))
 
 (use-package meson-mode
+    :ensure t)
+
+(use-package plantuml-mode
   :ensure t)
 
 ;; Language stuff
@@ -436,13 +441,27 @@
 					("\\.ts\\'" . typescript-ts-mode)
 					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
 
-(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-							 (js . t)
-							 (python . t)))
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
+;; Org-mode setup
+(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							 (js . t)
+							 (python . t)
+							 (plantuml . t)))
+
+(setq org-src-preserve-indentation t
+      org-plantuml-exec-mode 'plantuml
+      org-plantuml-args '("-headless" "-utxt"))
+
+
+;; this will re-render images in any org file after a code block is executed
+;; only affects buffers when #+STARTUP: inlineimages is set
+(add-hook 'org-babel-after-execute-hook
+          (lambda () (when org-inline-image-overlays (org-redisplay-inline-images))))
+
+;; Keybinds
 (defvar me/keybinds-mode-map (make-sparse-keymap))
 (dolist (keybind
 	 `(("C-c o s" . me/sudo-open)
@@ -457,7 +476,7 @@
 	   ("C-c l" . me/count-lines-reigon)))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
-;; Keybinds
+
 (define-minor-mode me/keybinds-mode
   "Toggle my personal keybindings."
   :global t
@@ -476,3 +495,4 @@
 
 (provide 'init)
 ;;; init.el ends here
+(put 'upcase-region 'disabled nil)
