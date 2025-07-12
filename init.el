@@ -71,11 +71,11 @@
 (defun me/leave-msg (msg)
   "Create a functoin that rings the bell, print why with `MSG'."
   `(lambda ()
-    (interactive)
-    (ding)
-    (if ,msg
-	(message "%s" ,msg)
-      nil)))
+     (interactive)
+     (ding)
+     (if ,msg
+	 (message "%s" ,msg)
+       nil)))
 
 (defun me/region-len ()
   "Prints the length of the current region if it is active."
@@ -102,10 +102,47 @@
     (insert (format "%d" (random max64)))))
 
 (defun me/read-file-as-str (filename)
-  "Returns the contents of `filename' as a string"
+  "Return the contents of `FILENAME' as a string."
   (with-temp-buffer
     (insert-file-contents filename)
     (buffer-string)))
+
+(defun me/hex-to-binary (d)
+  "Convert a hexadecimal digit `D' into it's binary nibble representation."
+  (message "%s" d)
+  (cond ((char-equal ?0 d) "0000")
+	((char-equal ?1 d) "0001")
+	((char-equal ?2 d) "0010")
+	((char-equal ?3 d) "0011")
+	((char-equal ?4 d) "0100")
+	((char-equal ?5 d) "0101")
+	((char-equal ?6 d) "0110")
+	((char-equal ?7 d) "0111")
+	((char-equal ?8 d) "1000")
+	((char-equal ?9 d) "1001")
+	((char-equal ?a d) "1010")
+	((char-equal ?b d) "1011")
+	((char-equal ?c d) "1100")
+	((char-equal ?d d) "1101")
+	((char-equal ?e d) "1110")
+	((char-equal ?f d) "1111")
+	(t (error "Unknown hex char %s" d))))
+
+(defun me/int-to-binary (int)
+  "Return `INT' as a binary string."
+  (unless (integerp int)
+    (error "Argument %s is not an integer" int))
+  (let ((s (string-to-list (format "%x" int))))
+    ;; padd the string with an extra 0 if there arent enough nibbles to create all bytes
+    (when (cl-oddp (length s))
+      (setq s (cons ?0 s)))
+    (setq s (mapcar #'me/hex-to-binary s))
+
+    (let ((out ""))
+      (while (not (null (car s)))
+	(setq out (concat out " " (car s) (car (cdr s))))
+	(setq s (cdr (cdr s))))
+      (substring out 1))))
 
 ;; Ui
 (setq inhibit-startup-screen t
@@ -149,7 +186,10 @@
 ;; font size
 (set-face-attribute 'default nil :height 140)
 
-;; Setup
+;; disable the complicated funcions disabler - I'm a big boy now
+(setq disabled-command-function nil)
+
+;; Package Setup
 ;; Add repos and ensure use-package is installed
 (require 'package)
 
@@ -163,7 +203,7 @@
 
 (require 'flymake)
 (with-eval-after-load 'flymake
-  (flymake-mode 1)
+  (add-hook 'emacs-lisp-mode-hook 'flymake-mode)
   (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
   (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
@@ -181,8 +221,8 @@
   (setq aw-background nil))
 
 (use-package hl-todo
+  :defines hl-todo-mode-map
   :functions (global-hl-todo-mode
-	    hl-todo-mode-map
 	    hl-todo-next
 	    hl-todo-previous)
   :ensure t
@@ -327,7 +367,11 @@
   :ensure t)
 
 (use-package gptel
+  :defines (gptel-mode-map
+	    gptel-api-key)
   :ensure t
+  :bind (:map gptel-mode-map
+	      ("C-c C-c" . gptel-send))
   :config
   (let ((token (me/read-file-as-str (concat user-emacs-directory "gpt_token"))))
     (unless (string-empty-p token)
@@ -367,12 +411,14 @@
 (setq eldoc-echo-area-use-multiline-p 10)
 
 (require 'elec-pair)
-(add-hook 'prog-mode-hook 'electric-pair-mode)
-(defun me/inhibit-electric-pair-mode-p (char)
-  "A predicate based on `CHAR' for when `electric-pair-mode' should be inhibited."
-  (or (minibufferp) (electric-pair-default-inhibit char)))
+(with-eval-after-load 'elec-pair
+  (add-hook 'prog-mode-hook 'electric-pair-mode)
+  (eval-and-compile
+    (defun me/inhibit-electric-pair-mode-p (char)
+      "A predicate based on `CHAR' for when `electric-pair-mode' should be inhibited."
+      (or (minibufferp) (electric-pair-default-inhibit char))))
 
-(setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p)
+  (setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p))
 
 ;; (defmacro me/lang-setup (name hooks &rest body)
 (defmacro me/lang-setup (NAME HOOKS &rest BODY)
@@ -446,20 +492,24 @@
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 
 ;; Org-mode setup
-(org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-							 (js . t)
-							 (python . t)
-							 (plantuml . t)))
+(require 'org)
+(with-eval-after-load 'org
+  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							   (js . t)
+							   (python . t)
+							   (plantuml . t)))
 
-(setq org-src-preserve-indentation t
-      org-plantuml-exec-mode 'plantuml
-      org-plantuml-args '("-headless" "-utxt"))
+  (setq org-src-preserve-indentation t)
+  ;; this will re-render images in any org file after a code block is executed
+  ;; only affects buffers when #+STARTUP: inlineimages is set
+  (add-hook 'org-babel-after-execute-hook
+            (lambda () (when org-inline-image-overlays (org-redisplay-inline-images)))))
 
+(require 'ob-plantuml)
+(with-eval-after-load 'ob-plantuml
+	(setq org-plantuml-exec-mode 'plantuml
+	      org-plantuml-args '("-headless" "-utxt")))
 
-;; this will re-render images in any org file after a code block is executed
-;; only affects buffers when #+STARTUP: inlineimages is set
-(add-hook 'org-babel-after-execute-hook
-          (lambda () (when org-inline-image-overlays (org-redisplay-inline-images))))
 
 ;; Keybinds
 (defvar me/keybinds-mode-map (make-sparse-keymap))
@@ -495,4 +545,3 @@
 
 (provide 'init)
 ;;; init.el ends here
-(put 'upcase-region 'disabled nil)
