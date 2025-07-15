@@ -5,8 +5,8 @@
 ;;; Code:
 ;; GC and Buffer Sizes
 ;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
-(setq gc-cons-threshold (* 100 1024 1024)) ;100mb (as rec. by lsp-mode)
-(setq read-process-output-max (* 1024 1024)) ; 1mb (/proc/sys/fs/pipe-max-size)
+(setq gc-cons-threshold (* 100 1024 1024) ;100mb (as rec. by lsp-mode)
+      read-process-output-max (* 1024 1024)) ; 1mb (/proc/sys/fs/pipe-max-size)
 
 ;; Customise file
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
@@ -22,9 +22,9 @@
       delete-old-versions t)
 
 ;; Lock-file transforms
-;; Put lockfiles in tmp instead of littered around the place.
-;; Extracs the filename from the path and appends it to /tmp, uniquifying if needed.
-;; Take into consideration permissions of where the file is stored, as lockfiles
+;; Put lock files in tmp instead of littered around the place.
+;; Extracts the filename from the path and appends it to /tmp, uniq-ifying if needed.
+;; Take into consideration permissions of where the file is stored, as lock files
 ;; are supposed to be able to be read by anyone
 (setq lock-file-name-transforms
       '(("\\`/.*/\\([^/]+\\)\\'" "/tmp/\\1" t)))
