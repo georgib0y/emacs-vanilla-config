@@ -147,7 +147,10 @@
       completion-ignore-case t)
 
 ;; font size
-(set-face-attribute 'default nil :height 120 :weight 'medium)
+(set-face-attribute 'default nil
+		    :font "Ubuntu Mono Medium"
+		    :height 130)
+
 
 
 ;; Setup
