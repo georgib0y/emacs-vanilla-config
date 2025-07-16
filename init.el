@@ -397,12 +397,15 @@
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
   
   (me/alist-add-many 'eglot-server-programs
-		     `((rust-ts-mode . ("rust-analyzer"))
+		     '((rust-ts-mode . ("rust-analyzer"))
 		       (go-ts-mode . ("gopls" "-remote=auto"))
 		       ;; https://download.eclipse.org/jdtls/milestones/
-		       (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+		       (java-ts-mode . ((concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
 					:initializationOptions (:hints (nil))))
-		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))))
+		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
+		       (typescript-mode . ("deno" "lsp"
+					   :initializationOptions (:enable t)))))
+									   
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
