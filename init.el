@@ -399,6 +399,7 @@
   (me/alist-add-many 'eglot-server-programs
 		     '((rust-ts-mode . ("rust-analyzer"))
 		       (go-ts-mode . ("gopls" "-remote=auto"))
+		       (python-ts-mode . ("pyright-langserver" "--stdio"))
 		       ;; https://download.eclipse.org/jdtls/milestones/
 		       (java-ts-mode . ((concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
 					:initializationOptions (:hints (nil))))
