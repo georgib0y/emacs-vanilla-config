@@ -458,49 +458,6 @@
 	       (setq tab-width 4)
 	       (setq c-basic-offset 4))
 
-;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
-(defvar treesit-language-source-alist
-      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-	(cmake "https://github.com/uyha/tree-sitter-cmake")
-	(css "https://github.com/tree-sitter/tree-sitter-css")
-	(dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
-	(go "https://github.com/tree-sitter/tree-sitter-go" "v0.19.1")
-	(gomod "https://github.com/camdencheek/tree-sitter-go-mod")
-	(html "https://github.com/tree-sitter/tree-sitter-html")
-	(java "https://github.com/tree-sitter/tree-sitter-java")
-	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-	(json "https://github.com/tree-sitter/tree-sitter-json")
-	(make "https://github.com/alemuller/tree-sitter-make")
-	(markdown "https://github.com/ikatyang/tree-sitter-markdown")
-	(python "https://github.com/tree-sitter/tree-sitter-python")
-	(rust "https://github.com/tree-sitter/tree-sitter-rust")
-	(toml "https://github.com/tree-sitter/tree-sitter-toml")
-	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
-
-(defun me/install-all-treesitter-grammars ()
-  "Install all treesitter grammars listed in `treesit-language-source-alist'."
-  (interactive)
-  (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
-  (message "Installed all treesitter grammars"))
-
-(setq major-mode-remap-alist
-      '((bash-mode . bash-ts-mode)
-	(css-mode . css-ts-mode)
-	(js2-mode . js-ts-mode)
-	(js-json-mode . json-ts-mode)
-	(python-mode . python-ts-mode)
-	(yaml-mode . yaml-ts-mode)
-	(java-mode . java-ts-mode)))
-
-(me/alist-add-many 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
-					("\\.go\\'" . go-ts-mode)
-					("\\.rs\\'" . rust-ts-mode)
-					("\\.ts\\'" . typescript-ts-mode)
-					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
-
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
