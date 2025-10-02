@@ -38,6 +38,8 @@
 
 ;; registers
 (set-register ?c `(file . ,user-init-file))
+(set-register ?b `(file . "~/.bashrc"))
+(set-register ?p `(file . "~/.profile"))
 
 ;; General functions
 (require 'cl-lib)
@@ -49,17 +51,15 @@
 
 (defun me/rm-from-alist (alist key)
   "Remove `KEY' from `ALIST'."
-  (setq alist (delq (assoc key alist) alist)))
+  (unless (symbolp alist) (error "`ALIST' must be a symbol"))
+  (unless (symbolp key) (error "`KEY' must be a symbol"))
 
-(defun me/sudo-open (path)
-  "Like `find-file' but opens PATH as root."
-  (interactive "GFind file: ")
-  (find-file (concat "/sudo::" (file-truename path))))
+  ;; loop through the alist until there are no values matching key
+  (let ((val (assoc key (eval alist))))
+    (while (not (null val))
+      (set alist (delq val (eval alist)))
+      (setq val (assoc key (eval alist))))))
 
-(defun me/sudo-dired (dir)
-  "Like `dired' but opens the DIR as root."
-  (interactive "DDirectory: ")
-  (dired (concat "/sudo::" (file-truename dir))))
 
 (defun me/reload-file ()
   "Reload a file."
@@ -160,10 +160,12 @@
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
+(defvar me/line-ruler-col 80)
+
 (defun show-line-ruler ()
-  "Show a line rule at column 100."
+  "Show a line rule at column set by `me/line-ruler-col'."
   (setq display-fill-column-indicator t
-	display-fill-column-indicator-column 100
+	display-fill-column-indicator-column me/line-ruler-col
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
   (display-fill-column-indicator-mode))
 
@@ -173,6 +175,9 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+(setq compilation-ask-about-save nil)
+
+;; turn off preserve case in query replace
 (setq case-replace nil)
 
 ;; completions setup
@@ -210,15 +215,6 @@
 (use-package which-key
   :ensure t
   :config (which-key-mode))
-
-(use-package ace-window
-  :defines (aw-keys
-	    aw-background)
-  :ensure t
-  :bind ("M-o" . ace-window)
-  :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-  (setq aw-background nil))
 
 (use-package hl-todo
   :defines hl-todo-mode-map
@@ -315,12 +311,10 @@
   (doom-themes-org-config)
 
   (defvar nice-themes '(doom-xcode
-		      doom-gruvbox
 		      doom-badger
 		      doom-challenger-deep
 		      doom-miramare
-		      doom-rouge
-		      doom-snazzy))
+		      doom-rouge))
 
   (defun me/pick-random-theme ()
     "Loads a random theme from `nice-themes'"
@@ -397,19 +391,37 @@
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
   
   (me/alist-add-many 'eglot-server-programs
-		     '((rust-ts-mode . ("rust-analyzer"))
+		     `((rust-ts-mode . ("rust-analyzer"))
 		       (go-ts-mode . ("gopls" "-remote=auto"))
 		       (python-ts-mode . ("pyright-langserver" "--stdio"))
 		       ;; https://download.eclipse.org/jdtls/milestones/
-		       (java-ts-mode . ((concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
-					:initializationOptions (:hints (nil))))
+		       (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+					:initializationOptions (:hints nil)))
 		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
 		       (typescript-mode . ("deno" "lsp"
 					   :initializationOptions (:enable t)))))
-									   
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
-  (keymap-set eglot-mode-map "C-c e r" 'eglot-rename))
+  (keymap-set eglot-mode-map "C-c e r" 'eglot-rename)
+
+  ;; redefine eglot-rename as it bugs me that it doesn't prefill the
+  ;; symbol source. taken directly from eglot.el, just changed the
+  ;; INITIAL-CONTENTS arg in read-from-minibufer to include the symbol
+  (defun eglot-rename (newname)
+    "Rename the current symbol to NEWNAME."
+    (interactive
+     (list (read-from-minibuffer
+            (format "Rename `%s' to: " (or (thing-at-point 'symbol t)
+                                           "unknown symbol"))
+	    (symbol-name (symbol-at-point)) ;; was nil
+            nil nil nil
+            (symbol-name (symbol-at-point)))))
+    (eglot-server-capable-or-lose :renameProvider)
+    (eglot--apply-workspace-edit
+     (eglot--request (eglot--current-server-or-lose)
+                     :textDocument/rename `(,@(eglot--TextDocumentPositionParams)
+                                            :newName ,newname))
+     this-command)))
 
 ;; limit eldoc to max 10 lines
 (setq eldoc-echo-area-use-multiline-p 10)
@@ -448,27 +460,25 @@
 	       (setq tab-width 4)
 	       (setq c-basic-offset 4))
 
-;; yanked from https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
-(defvar treesit-language-source-alist
-      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-	(cmake "https://github.com/uyha/tree-sitter-cmake")
-	(css "https://github.com/tree-sitter/tree-sitter-css")
-	(dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
-	(go "https://github.com/tree-sitter/tree-sitter-go" "v0.19.1")
-	(gomod "https://github.com/camdencheek/tree-sitter-go-mod")
-	(html "https://github.com/tree-sitter/tree-sitter-html")
-	(java "https://github.com/tree-sitter/tree-sitter-java")
-	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-	(json "https://github.com/tree-sitter/tree-sitter-json")
-	(make "https://github.com/alemuller/tree-sitter-make")
-	(markdown "https://github.com/ikatyang/tree-sitter-markdown")
-	(python "https://github.com/tree-sitter/tree-sitter-python")
-	(rust "https://github.com/tree-sitter/tree-sitter-rust")
-	(toml "https://github.com/tree-sitter/tree-sitter-toml")
-	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+(me/lang-setup "conf"
+	       '(conf-mode-hook)
+	       (setq tab-width 4)  ;; default tab-width of 8 is a bit intense
+	       (setq c-basic-offset 4))
+
+
+(setq treesit-language-source-alist
+  '((css "https://github.com/tree-sitter/tree-sitter-css")
+    (go "https://github.com/tree-sitter/tree-sitter-go")
+    (gomod "https://github.com/camdencheek/tree-sitter-go-mod")
+    (html "https://github.com/tree-sitter/tree-sitter-html")
+    (java "https://github.com/tree-sitter/tree-sitter-java")
+    (javascript "https://github.com/tree-sitter/tree-sitter-javascript")
+    (json "https://github.com/tree-sitter/tree-sitter-json")
+    (python "https://github.com/tree-sitter/tree-sitter-python")
+    (rust "https://github.com/tree-sitter/tree-sitter-rust")
+    (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
+    (typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")))
+
 
 (defun me/install-all-treesitter-grammars ()
   "Install all treesitter grammars listed in `treesit-language-source-alist'."
@@ -482,15 +492,7 @@
 	(js2-mode . js-ts-mode)
 	(js-json-mode . json-ts-mode)
 	(python-mode . python-ts-mode)
-	(yaml-mode . yaml-ts-mode)
 	(java-mode . java-ts-mode)))
-
-(me/alist-add-many 'auto-mode-alist '(("go\\.mod\\'" . go-mod-ts-mode)
-					("\\.go\\'" . go-ts-mode)
-					("\\.rs\\'" . rust-ts-mode)
-					("\\.ts\\'" . typescript-ts-mode)
-					("\\(Containerfile\\|Dockerfile\\)\\'" . dockerfile-ts-mode)))
-
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
@@ -518,9 +520,7 @@
 ;; Keybinds
 (defvar me/keybinds-mode-map (make-sparse-keymap))
 (dolist (keybind
-	 `(("C-c o s" . me/sudo-open)
-	   ("C-c o S" . me/sudo-dired)
-	   ("C-c o x" . scratch-buffer)
+	 `(("C-c o x" . scratch-buffer)
 	   ("C-c o r" . me/reload-file)
 	   ("C-c C-d" . duplicate-line)
 	   ("C-c s" . just-one-space)
