@@ -38,12 +38,33 @@
 
 ;; registers
 (set-register ?c `(file . ,user-init-file))
-(set-register ?b `(file . "~/.bashrc"))
-(set-register ?p `(file . "~/.profile"))
+(set-register ?b '(file . "~/.bashrc"))
+(set-register ?p '(file . "~/.profile"))
 
-;; General functions
+;; System specific config
 (require 'cl-lib)
 
+(cl-defstruct me/system-config
+  "A collection of variables that could change based on the computer/system I'm on."
+  (ruler-col 80 :type number)
+  (font-family nil :type string)
+  (font-size 140 :type number))
+
+(defvar me/desktop-config
+  (make-me/system-config :font-size 180))
+
+(defvar me/laptop-config
+  (make-me/system-config))
+
+(defvar me/windows-config
+  (make-me/system-config))
+
+(defvar me/current-config
+  (cond
+   ;; TODO other systems
+   ((string= (system-name) "george-gentoo") me/desktop-config)))
+
+;; General functions
 (defun me/alist-add-many (alist to-add)
   "Add all items in TO-ADD into ALIST."
   (dolist (element to-add)
@@ -160,12 +181,10 @@
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
-(defvar me/line-ruler-col 80)
-
 (defun show-line-ruler ()
-  "Show a line rule at column set by `me/line-ruler-col'."
+  "Show a line rule at column set by the current system config."
   (setq display-fill-column-indicator t
-	display-fill-column-indicator-column me/line-ruler-col
+	display-fill-column-indicator-column (me/system-config-ruler-col me/current-config)
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
   (display-fill-column-indicator-mode))
 
@@ -189,7 +208,7 @@
       completion-ignore-case t)
 
 ;; font size
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height (me/system-config-font-size me/current-config)) ;; TODO font family
 
 ;; disable the complicated funcions disabler - I'm a big boy now
 (setq disabled-command-function nil)
@@ -216,26 +235,32 @@
   :defines (god-exempt-major-modes
 	    god-exempt-predicates
 	    god-local-mode
-	    god-local-mode-map)
+	    god-local-mode-map
+	    god-mode-isearch-map)
   :functions (god-local-mode
   	      god-local-mode-pause
-	      god-local-mode-resume)
+	      god-local-mode-resume
+	      god-mode-isearch-activate
+	      god-mode-isearch-disable)
   :ensure t
   :init
+  (require 'god-mode) ;; this is required i think
+  (require 'god-mode-isearch) ;; this is required i think
+  
   (defun me/god-mode-update-cursor-type ()
-    (require 'god-mode)
-    (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+
+    (setq cursor-type (if (or god-local-mode buffer-read-only) '(hbar . 13) 'box)))
 
   ;; TODO can a change modeline colour (and face value)
 
   (defun me/god-mode-toggle-on-overwrite ()
+    (require 'god-mode) ;; this might be required
     "Toggle god-mode on overwrite-mode."
     (if (bound-and-true-p overwrite-mode)
 	(god-local-mode-pause)
       (god-local-mode-resume)))
 
   :bind (("<escape>" . god-mode-all)
-	 ;; TODO isearch integration
 	 :map god-local-mode-map
 	 ("." . repeat)
 	 ("C-x C-1" . delete-other-windows)
@@ -243,7 +268,11 @@
 	 ("C-x C-3" . split-window-right)
 	 ("C-x C-0" . delete-window)
 	 ("[" . backward-paragraph)
-	 ("]" . forward-paragraph))
+	 ("]" . forward-paragraph)
+	 :map isearch-mode-map
+	 ("<escape>" . god-mode-isearch-activate)
+	 :map god-mode-isearch-map
+	 ("<escape>" . god-mode-isearch-disable))
   
   :hook ((post-command-hook . me/god-mode-update-cursor-type)
 	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite)))
