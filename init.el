@@ -212,6 +212,42 @@
   (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
   (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
+(use-package god-mode
+  :defines (god-exempt-major-modes
+	    god-exempt-predicates
+	    god-local-mode
+	    god-local-mode-map)
+  :functions (god-local-mode
+  	      god-local-mode-pause
+	      god-local-mode-resume)
+  :ensure t
+  :init
+  (defun me/god-mode-update-cursor-type ()
+    (require 'god-mode)
+    (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+
+  ;; TODO can a change modeline colour (and face value)
+
+  (defun me/god-mode-toggle-on-overwrite ()
+    "Toggle god-mode on overwrite-mode."
+    (if (bound-and-true-p overwrite-mode)
+	(god-local-mode-pause)
+      (god-local-mode-resume)))
+
+  :bind (("<escape>" . god-mode-all)
+	 ;; TODO isearch integration
+	 :map god-local-mode-map
+	 ("." . repeat)
+	 ("C-x C-1" . delete-other-windows)
+	 ("C-x C-2" . split-window-below)
+	 ("C-x C-3" . split-window-right)
+	 ("C-x C-0" . delete-window)
+	 ("[" . backward-paragraph)
+	 ("]" . forward-paragraph))
+  
+  :hook ((post-command-hook . me/god-mode-update-cursor-type)
+	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite)))
+
 (use-package which-key
   :ensure t
   :config (which-key-mode))
@@ -292,8 +328,6 @@
   :defines markdown-command
   :ensure t
   :mode ("README\\.md\\'" . 'gfm-mode)
-  ;; :hook (markdown-mode . flyspell-mode)
-  ;; :hook (gfm-mode . flyspell-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package doom-themes
@@ -364,7 +398,8 @@
   :defines (gptel-mode-map
 	    gptel-api-key)
   :ensure t
-  :bind (:map gptel-mode-map
+  :bind (("C-c C-g" . gptel)
+	 :map gptel-mode-map
 	      ("C-c C-c" . gptel-send))
   :config
   (let ((token (me/read-file-as-str (concat user-emacs-directory "gpt_token"))))
