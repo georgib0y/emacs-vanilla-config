@@ -248,13 +248,13 @@
   (require 'god-mode-isearch) ;; this is required i think
   
   (defun me/god-mode-update-cursor-type ()
-
-    (setq cursor-type (if (or god-local-mode buffer-read-only) '(hbar . 13) 'box)))
-
-  ;; TODO can a change modeline colour (and face value)
-
+    (setq cursor-type
+	  (cond
+	   (god-local-mode 'box)
+	   (buffer-read-only 'hollow)
+	   (t 'bar))))
+  
   (defun me/god-mode-toggle-on-overwrite ()
-    (require 'god-mode) ;; this might be required
     "Toggle god-mode on overwrite-mode."
     (if (bound-and-true-p overwrite-mode)
 	(god-local-mode-pause)
@@ -275,7 +275,11 @@
 	 ("<escape>" . god-mode-isearch-disable))
   
   :hook ((post-command-hook . me/god-mode-update-cursor-type)
-	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite)))
+	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite))
+
+  :config
+  (setq god-exempt-major-modes nil
+	god-exempt-predicates nil))
 
 (use-package which-key
   :ensure t
