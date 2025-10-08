@@ -306,9 +306,16 @@
   :ensure t
   :config (which-key-mode))
 
+;; unsure whether avy is actually a part of emacs now or not
+;; i think so, but 1 more use-package can't hurt
 (use-package avy
-  :functions avy-setup-default
+  :functions (avy-setup-default
+	      avy-goto-char
+	      avy-goto-line)
   :ensure t
+  :bind (("C-:" . avy-goto-char)
+	 ("C-'" . avy-goto-char-2)
+	 ("M-g f" . avy-goto-line))
   :config (avy-setup-default))
 
 (use-package hl-todo
