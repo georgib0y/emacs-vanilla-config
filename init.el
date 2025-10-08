@@ -3,6 +3,39 @@
 ;; My Emacs configuration
 
 ;;; Code:
+;; System specific config
+(require 'cl-lib)
+(cl-defstruct me/config
+  "A collection of variables that could change based on the computer/system I'm on."
+  (tmp-dir "/tmp" :type string) ;; path of dir WITHOUT the ending / or \
+  (ruler-col 80 :type number)
+  (font-family nil :type string)
+  (font-size 140 :type number)
+  (enable-themes t :type boolean)
+  (enable-treesitter t :type boolean))
+
+(defvar me/desktop-config
+  (make-me/config
+   :font-size 180))
+
+(defvar me/laptop-config
+  (make-me/config
+   :font-size 160))
+
+(defvar me/windows-config
+  (make-me/config
+   :tmp-dir (file-name-concat user-emacs-directory "tmp")
+   :font-size 120
+   :enable-themes nil
+   :enable-treesitter nil))
+
+(defvar me/curr-config
+  (cond
+   ((string= (system-name) "george-gentoo") me/desktop-config)
+   ((string= (system-name) "george-thinkpad") me/laptop-config)
+   ((string= (system-name) "SHCS-PC77") me/windows-config)
+   (t (make-me/config))))
+
 ;; GC and Buffer Sizes
 ;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
 (setq gc-cons-threshold (* 100 1024 1024) ;100mb (as rec. by lsp-mode)
@@ -16,7 +49,7 @@
 ;; Backup file
 ;; Put any backup files in the .conf folder instead of in the working dir
 ;; place file backups in conf emacs instead of littered around the place
-(setq backup-directory-alist `(("." . ,(expand-file-name "backups" user-emacs-directory)))
+(setq backup-directory-alist `(("." . ,(file-name-concat user-emacs-directory "backups")))
       backup-by-copying t
       version-control t
       delete-old-versions t)
@@ -27,42 +60,25 @@
 ;; Take into consideration permissions of where the file is stored, as lock files
 ;; are supposed to be able to be read by anyone
 (setq lock-file-name-transforms
-      '(("\\`/.*/\\([^/]+\\)\\'" "/tmp/\\1" t)))
+      `(("\\`/.*/\\([^/]+\\)\\'"
+	 ,(file-name-concat (me/config-tmp-dir me/curr-config) "\\1")
+	 t)))
 
 ;; Auto-save file transforms
 ;; Put remote autosave in /tmp and put regular autosave in conf emacs.
 ;; The ordering of this alist is important. The catch all should be at the end
 (setq auto-save-file-name-transforms
-      '(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'" "/tmp/\\2" t)
-	(".*" "~/.config/emacs/auto-saves/" t)))
+      `(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'"
+	 ;; this probably wont work on Windows (\), but might not be an issue
+	 ,(file-name-concat (me/config-tmp-dir me/curr-config) "\\2")
+	 t)
+	(".*" ,(file-name-concat user-emacs-directory "auto-saves") t)))
 
 ;; registers
 (set-register ?c `(file . ,user-init-file))
 (set-register ?b '(file . "~/.bashrc"))
 (set-register ?p '(file . "~/.profile"))
 
-;; System specific config
-(require 'cl-lib)
-
-(cl-defstruct me/system-config
-  "A collection of variables that could change based on the computer/system I'm on."
-  (ruler-col 80 :type number)
-  (font-family nil :type string)
-  (font-size 140 :type number))
-
-(defvar me/desktop-config
-  (make-me/system-config :font-size 180))
-
-(defvar me/laptop-config
-  (make-me/system-config))
-
-(defvar me/windows-config
-  (make-me/system-config))
-
-(defvar me/current-config
-  (cond
-   ;; TODO other systems
-   ((string= (system-name) "george-gentoo") me/desktop-config)))
 
 ;; General functions
 (defun me/alist-add-many (alist to-add)
@@ -184,7 +200,7 @@
 (defun show-line-ruler ()
   "Show a line rule at column set by the current system config."
   (setq display-fill-column-indicator t
-	display-fill-column-indicator-column (me/system-config-ruler-col me/current-config)
+	display-fill-column-indicator-column (me/config-ruler-col me/curr-config)
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
   (display-fill-column-indicator-mode))
 
@@ -208,7 +224,10 @@
       completion-ignore-case t)
 
 ;; font size
-(set-face-attribute 'default nil :height (me/system-config-font-size me/current-config)) ;; TODO font family
+(set-face-attribute
+ 'default nil
+ :family (me/config-font-family me/curr-config)
+ :height (me/config-font-size me/curr-config))
 
 ;; disable the complicated funcions disabler - I'm a big boy now
 (setq disabled-command-function nil)
@@ -404,13 +423,15 @@
       (when (called-interactively-p 'interactive)
 	(message "Loaded %s theme" theme))))
 
-  (me/pick-random-theme)
+  (when (me/config-enable-themes me/curr-config)
+      (me/pick-random-theme)
 
-  (defun me/change-theme-on-project-advice (orig-fun &rest args)
-    (me/pick-random-theme)
-    (apply orig-fun args))
-  
-  (advice-add 'project-switch-project :around #'me/change-theme-on-project-advice))
+      (defun me/change-theme-on-project-advice (orig-fun &rest args)
+	(me/pick-random-theme)
+	(apply orig-fun args))
+      
+      (advice-add 'project-switch-project
+		  :around #'me/change-theme-on-project-advice)))
 
 (use-package yasnippet
   :functions yas-global-mode
@@ -442,7 +463,7 @@
 	 :map gptel-mode-map
 	      ("C-c C-c" . gptel-send))
   :config
-  (let ((token (me/read-file-as-str (concat user-emacs-directory "gpt_token"))))
+  (let ((token (me/read-file-as-str (file-name-concat user-emacs-directory "gpt_token"))))
     (unless (string-empty-p token)
       (setq gptel-api-key token))))
 
@@ -470,7 +491,7 @@
 		       (go-ts-mode . ("gopls" "-remote=auto"))
 		       (python-ts-mode . ("pyright-langserver" "--stdio"))
 		       ;; https://download.eclipse.org/jdtls/milestones/
-		       (java-ts-mode . (,(concat user-emacs-directory "jdtls-1.45.0/bin/jdtls")
+		       (java-ts-mode . (,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
 					:initializationOptions (:hints nil)))
 		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
 		       (typescript-mode . ("deno" "lsp"
@@ -561,13 +582,14 @@
   (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
   (message "Installed all treesitter grammars"))
 
+(when (me/config-enable-treesitter me/curr-config)
 (setq major-mode-remap-alist
       '((bash-mode . bash-ts-mode)
 	(css-mode . css-ts-mode)
 	(js2-mode . js-ts-mode)
 	(js-json-mode . json-ts-mode)
 	(python-mode . python-ts-mode)
-	(java-mode . java-ts-mode)))
+	(java-mode . java-ts-mode))))
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
