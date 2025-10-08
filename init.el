@@ -272,7 +272,9 @@
 	 :map isearch-mode-map
 	 ("<escape>" . god-mode-isearch-activate)
 	 :map god-mode-isearch-map
-	 ("<escape>" . god-mode-isearch-disable))
+	 ("<escape>" . god-mode-isearch-disable)
+	 :map compilation-mode-map
+	 ("M-g" . recompile))
   
   :hook ((post-command-hook . me/god-mode-update-cursor-type)
 	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite))
@@ -284,6 +286,11 @@
 (use-package which-key
   :ensure t
   :config (which-key-mode))
+
+(use-package avy
+  :functions avy-setup-default
+  :ensure t
+  :config (avy-setup-default))
 
 (use-package hl-todo
   :defines hl-todo-mode-map
