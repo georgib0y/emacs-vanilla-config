@@ -16,7 +16,7 @@
 ;; Backup file
 ;; Put any backup files in the .conf folder instead of in the working dir
 ;; place file backups in conf emacs instead of littered around the place
-(setq backup-directory-alist `(("." . ,(expand-file-name "backups" user-emacs-directory)))
+(setq backup-directory-alist `("." . ,(expand-file-name "backups" user-emacs-directory))
       backup-by-copying t
       version-control t
       delete-old-versions t)
@@ -216,12 +216,14 @@
 
 (use-package ace-window
   :defines (aw-keys
-	    aw-background)
+	    aw-background
+	    aw-scope)
   :ensure t
   :bind ("M-o" . ace-window)
   :config
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-  (setq aw-background nil))
+  (setq aw-background nil)
+  (setq aw-scope 'frame))
 
 (use-package hl-todo
   :defines hl-todo-mode-map
