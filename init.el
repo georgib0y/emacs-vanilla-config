@@ -12,11 +12,13 @@
   (font-family nil :type string)
   (font-size 140 :type number)
   (enable-themes t :type boolean)
-  (enable-treesitter t :type boolean))
+  (enable-treesitter t :type boolean)
+  (python-lsp-server '("pyright-langserver" "--stdio") :type list))
 
 (defvar me/desktop-config
   (make-me/config
-   :font-size 180))
+   :font-size 180
+   :python-lsp-server '("pylsp")))
 
 (defvar me/laptop-config
   (make-me/config
@@ -496,7 +498,7 @@
   (me/alist-add-many 'eglot-server-programs
 		     `((rust-ts-mode . ("rust-analyzer"))
 		       (go-ts-mode . ("gopls" "-remote=auto"))
-		       (python-ts-mode . ("pyright-langserver" "--stdio"))
+		       (python-ts-mode . ,(me/config-python-lsp-server me/curr-config))
 		       ;; https://download.eclipse.org/jdtls/milestones/
 		       (java-ts-mode . (,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
 					:initializationOptions (:hints nil)))
