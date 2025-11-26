@@ -99,7 +99,6 @@
       (set alist (delq val (eval alist)))
       (setq val (assoc key (eval alist))))))
 
-
 (defun me/reload-file ()
   "Reload a file."
   (interactive)
@@ -108,7 +107,7 @@
     (goto-char pos)))
 
 (defun me/leave-msg (msg)
-  "Create a functoin that rings the bell, print why with `MSG'."
+  "Create a function that rings the bell, print why with `MSG'."
   `(lambda ()
      (interactive)
      (ding)
@@ -469,7 +468,7 @@
   :defines (gptel-mode-map
 	    gptel-api-key)
   :ensure t
-  :bind (("C-c C-g" . gptel)
+  :bind (("C-c o g" . gptel)
 	 :map gptel-mode-map
 	      ("C-c C-c" . gptel-send))
   :config
@@ -593,13 +592,14 @@
   (message "Installed all treesitter grammars"))
 
 (when (me/config-enable-treesitter me/curr-config)
-(setq major-mode-remap-alist
-      '((bash-mode . bash-ts-mode)
-	(css-mode . css-ts-mode)
-	(js2-mode . js-ts-mode)
-	(js-json-mode . json-ts-mode)
-	(python-mode . python-ts-mode)
-	(java-mode . java-ts-mode))))
+  (setq major-mode-remap-alist
+	'((bash-mode . bash-ts-mode)
+	  (css-mode . css-ts-mode)
+	  (js2-mode . js-ts-mode)
+	  (js-json-mode . json-ts-mode)
+	  (python-mode . python-ts-mode)
+	  (java-mode . java-ts-mode)
+	  (go-mode . go-ts-mode))))
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
@@ -607,10 +607,11 @@
 ;; Org-mode setup
 (require 'org)
 (with-eval-after-load 'org
-  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-							   (js . t)
-							   (python . t)
-							   (plantuml . t)))
+  (org-babel-do-load-languages
+   'org-babel-load-languages '((shell . t)
+			       (js . t)
+			       (python . t)
+			       (plantuml . t)))
 
   (setq org-src-preserve-indentation t)
   ;; this will re-render images in any org file after a code block is executed
@@ -637,7 +638,6 @@
 	   ("C-c l" . me/count-lines-reigon)))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
 		  
-
 (define-minor-mode me/keybinds-mode
   "Toggle my personal keybindings."
   :global t
