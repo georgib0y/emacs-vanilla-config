@@ -290,6 +290,7 @@
 	 ("C-x C-0" . delete-window)
 	 ("[" . backward-paragraph)
 	 ("]" . forward-paragraph)
+	 ("M-o" . other-window)
 	 :map isearch-mode-map
 	 ("<escape>" . god-mode-isearch-activate)
 	 :map god-mode-isearch-map
@@ -549,7 +550,7 @@
      (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
 
 (me/lang-setup "ts-js"
-	       '(typescript-ts-mode-hook js-mode-hook)
+	       '(typescript-ts-mode-hook js-mode-hook js-ts-mode-hook)
 	       (setq tab-width 4))
 
 (require 'go-ts-mode)
