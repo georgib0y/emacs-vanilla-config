@@ -261,7 +261,8 @@
   	      god-local-mode-pause
 	      god-local-mode-resume
 	      god-mode-isearch-activate
-	      god-mode-isearch-disable)
+	      god-mode-isearch-disable
+	      me/god-mode-q-passthrough)
   :ensure t
   :init
   (require 'god-mode) ;; this is required i think
@@ -280,6 +281,11 @@
 	(god-local-mode-pause)
       (god-local-mode-resume)))
 
+  (defun me/god-mode-q-passthrough ()
+    "Sends q as a char rather than C-q."
+    (interactive)
+    (self-insert-command 1 ?q))
+
   :bind (("<escape>" . god-mode-all)
 	 :map god-local-mode-map
 	 ("." . repeat)
@@ -290,6 +296,8 @@
 	 ("[" . backward-paragraph)
 	 ("]" . forward-paragraph)
 	 ("M-o" . other-window)
+	 ("z" . ignore)
+	 ("C-q" . me/god-mode-q-passthrough)
 	 :map isearch-mode-map
 	 ("<escape>" . god-mode-isearch-activate)
 	 :map god-mode-isearch-map
@@ -491,6 +499,7 @@
   (defun me/eglot-setup ()
     "Eglot setup."
     (add-hook 'before-save-hook 'eglot-format)
+    (delete-selection-mode 1)
     (eglot-inlay-hints-mode -1))
   
   (add-hook 'eglot-managed-mode-hook 'me/eglot-setup)
