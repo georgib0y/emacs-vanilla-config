@@ -13,12 +13,11 @@
   (font-size 140 :type number)
   (enable-themes t :type boolean)
   (enable-treesitter t :type boolean)
-  (python-lsp-server '("pyright-langserver" "--stdio") :type list))
+  (python-lsp-server '("pylsp") :type list))
 
 (defvar me/desktop-config
   (make-me/config
-   :font-size 180
-   :python-lsp-server '("pylsp")))
+   :font-size 180))
 
 (defvar me/laptop-config
   (make-me/config
@@ -29,7 +28,8 @@
    :tmp-dir (file-name-concat user-emacs-directory "tmp")
    :font-size 120
    :enable-themes nil
-   :enable-treesitter nil))
+   :enable-treesitter nil
+   :python-lsp-server '("pyright-langserver" "--stdio")))
 
 (defvar me/curr-config
   (cond
