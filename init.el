@@ -13,15 +13,21 @@
   (font-size 140 :type number)
   (enable-themes t :type boolean)
   (enable-treesitter t :type boolean)
-  (python-lsp-server '("pylsp") :type list))
+  (python-lsp-server '("pylsp") :type list)
+  (enable-menu-bar nil :type boolean))
 
 (defvar me/desktop-config
   (make-me/config
    :font-size 180))
 
-(defvar me/laptop-config
+(defvar me/thinkpad-config
   (make-me/config
    :font-size 160))
+
+(defvar me/macbook-config
+  (make-me/config
+   :font-size 180
+   :enable-menu-bar t))
 
 (defvar me/windows-config
   (make-me/config
@@ -34,7 +40,8 @@
 (defvar me/curr-config
   (cond
    ((string= (system-name) "george-gentoo") me/desktop-config)
-   ((string= (system-name) "george-thinkpad") me/laptop-config)
+   ((string= (system-name) "george-thinkpad") me/thinkpad-config)
+   ((string= (system-name) "Georges-MacBook-Pro.local") me/macbook-config)
    ((string= (system-name) "SHCS-PC77") me/windows-config)
    (t (make-me/config))))
 
@@ -187,7 +194,9 @@
       visible-bell t
       column-number-mode t)
 
-(menu-bar-mode -1)
+(unless (me/config-enable-menu-bar me/curr-config)
+  (menu-bar-mode -1))
+
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (global-display-line-numbers-mode t)
@@ -610,7 +619,8 @@
 	  (js-json-mode . json-ts-mode)
 	  (python-mode . python-ts-mode)
 	  (java-mode . java-ts-mode)
-	  (go-mode . go-ts-mode))))
+	  (go-mode . go-ts-mode)
+	  (rust-mode . rust-ts-mode))))
 
 ;; add colours to compilation out
 (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
