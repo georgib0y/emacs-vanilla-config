@@ -494,6 +494,8 @@
 (require 'tramp)
 (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
 
+(add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
+
 (require 'eglot)
 (with-eval-after-load 'eglot
   (defun me/eglot-setup ()
