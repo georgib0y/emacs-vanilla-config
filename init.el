@@ -18,7 +18,7 @@
 
 (defvar me/desktop-config
   (make-me/config
-   :font-size 180))
+   :font-size 160))
 
 (defvar me/thinkpad-config
   (make-me/config
@@ -244,15 +244,37 @@
 
 ;; Package Setup
 ;; Add repos and ensure use-package is installed
-(require 'package)
+;; (require 'package)
 
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
-;; install use-pacakge if not already present
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package)
-  (eval-when-compile (require 'use-package)))
+;; ;; install use-pacakge if not already present
+;; (unless (package-installed-p 'use-package)
+;;   (package-refresh-contents)
+;;   (package-install 'use-package)
+;;   (eval-when-compile (require 'use-package)))
+
+;; setup straight.el
+;; TODO should actually be in early-init
+(setq package-enable-at-startup nil)
+
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(straight-use-package 'use-package)
 
 (require 'flymake)
 (with-eval-after-load 'flymake
@@ -261,6 +283,7 @@
   (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
 (use-package god-mode
+  :straight t
   :defines (god-exempt-major-modes
 	    god-exempt-predicates
 	    god-local-mode
@@ -272,7 +295,6 @@
 	      god-mode-isearch-activate
 	      god-mode-isearch-disable
 	      me/god-mode-q-passthrough)
-  :ensure t
   :init
   (require 'god-mode) ;; this is required i think
   (require 'god-mode-isearch) ;; this is required i think
@@ -322,27 +344,27 @@
 	god-exempt-predicates nil))
 
 (use-package which-key
-  :ensure t
+  :straight t
   :config (which-key-mode))
 
 ;; unsure whether avy is actually a part of emacs now or not
 ;; i think so, but 1 more use-package can't hurt
 (use-package avy
+  :straight t
   :functions (avy-setup-default
 	      avy-goto-char
 	      avy-goto-line)
-  :ensure t
   :bind (("C-:" . avy-goto-char)
 	 ("C-'" . avy-goto-char-2)
 	 ("M-g f" . avy-goto-line))
   :config (avy-setup-default))
 
 (use-package hl-todo
+  :straight t
   :defines hl-todo-mode-map
   :functions (global-hl-todo-mode
-	    hl-todo-next
-	    hl-todo-previous)
-  :ensure t
+	      hl-todo-next
+	      hl-todo-previous)
   :bind (:map hl-todo-mode-map
 	      ("C-c C-n" . hl-todo-next)
 	      ("C-c C-p" . hl-todo-previous))
@@ -350,7 +372,7 @@
   (global-hl-todo-mode 1))
 
 (use-package orderless
-  :ensure t
+  :straight t
   :custom
   (completion-styles '(orderless basic))
   (completion-category-defaults nil)
@@ -359,10 +381,10 @@
   (setq completions-sort 'orderless))
 
 (use-package vertico
+  :straight t
   :defines crm-separator
   :functions (vertico-mode
 	      crm-indicator)
-  :ensure t
   :hook (minibuffer-setup . cursor-intangible-mode)
   :init
   (defun crm-indicator (args)
@@ -383,10 +405,10 @@
 
 (require 'xref)
 (use-package consult
+  :straight t
   :functions (consult-register-window
 	      consult-xref
 	      consult-completion-in-region)
-  :ensure t
   :after vertico
   :init
   ;; Tweak the register preview for `consult-register-load',
@@ -404,25 +426,25 @@
   (setq completion-in-region-function #'consult-completion-in-region))
 
 (use-package magit
+  :straight t
   :defines magit-define-global-key-bindings
-  :ensure t
   :config
   (setq magit-define-global-key-bindings 'recommended))
 
 (use-package markdown-mode
+  :straight t
   :defines markdown-command
-  :ensure t
   :mode ("README\\.md\\'" . 'gfm-mode)
   :init (setq markdown-command "multimarkdown"))
 
 (use-package doom-themes
+  :straight t
   :defines (doom-themes-enable-bold
 	    doom-themes-enable-italic)
   :functions (doom-themes-visual-bell-config
 	      doom-themes-org-config
 	      me/pick-random-theme
 	      me/change-theme-on-project-advice)
-  :ensure t
   :config
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
@@ -430,10 +452,10 @@
   (doom-themes-org-config)
 
   (defvar nice-themes '(doom-xcode
-		      doom-badger
-		      doom-challenger-deep
-		      doom-miramare
-		      doom-rouge))
+			doom-badger
+			doom-challenger-deep
+			doom-miramare
+			doom-rouge))
 
   (defun me/pick-random-theme ()
     "Loads a random theme from `nice-themes'"
@@ -450,59 +472,71 @@
 	(message "Loaded %s theme" theme))))
 
   (when (me/config-enable-themes me/curr-config)
-      (me/pick-random-theme)
+    (me/pick-random-theme)
 
-      (defun me/change-theme-on-project-advice (orig-fun &rest args)
-	(me/pick-random-theme)
-	(apply orig-fun args))
-      
-      (advice-add 'project-switch-project
-		  :around #'me/change-theme-on-project-advice)))
+    (defun me/change-theme-on-project-advice (orig-fun &rest args)
+      (me/pick-random-theme)
+      (apply orig-fun args))
+    
+    (advice-add 'project-switch-project
+		:around #'me/change-theme-on-project-advice)))
 
 (use-package yasnippet
+  :straight t
   :functions yas-global-mode
-  :ensure t
   :init
   (yas-global-mode 1))
 
 (use-package yasnippet-snippets
-  :ensure t)
+  :straight t)
 
 (use-package pyvenv
-  :ensure t)
+  :straight t)
 
 ;; required by zig mode
 (use-package reformatter
-  :ensure t)
+  :straight t)
 
 (use-package zig-mode
-  :ensure t)
+  :straight t)
 
 (use-package haskell-mode
-  :ensure t)
+  :straight t)
 
 (use-package gptel
+  :straight t
   :defines (gptel-mode-map
 	    gptel-api-key)
-  :ensure t
   :bind (("C-c o g" . gptel)
 	 :map gptel-mode-map
-	      ("C-c C-c" . gptel-send))
+	 ("C-c C-c" . gptel-send))
   :config
   (let ((token (me/read-file-as-str (file-name-concat user-emacs-directory "gpt_token"))))
     (unless (string-empty-p token)
       (setq gptel-api-key token))))
 
 (use-package meson-mode
-    :ensure t)
+  :straight t)
 
 (use-package plantuml-mode
-  :ensure t)
+  :straight t)
+
+;; emacs' version of tramp is a little older than the upstream, seems
+;; to be a problem with toolbox integration
+(use-package tramp
+  :functions (tramp-enable-method)
+  :defines (tramp-toolbox-program
+	    tramp-remote-path
+	    tramp-own-path)
+  :straight t
+  :init
+  (setq tramp-toolbox-program "flatpak-spawn --host toolbox")
+  :config
+  (tramp-enable-method "toolbox")
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+
 
 ;; Language stuff
-(require 'tramp)
-(add-to-list 'tramp-remote-path 'tramp-own-remote-path)
-
 (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
 
 (require 'eglot)
