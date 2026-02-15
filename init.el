@@ -189,6 +189,12 @@
 	(setq s (cdr (cdr s))))
       (substring out 1))))
 
+(defmacro me/lang-setup (NAME HOOKS &rest BODY)
+  "Create a setup func with the `NAME' and `BODY'.  Add it to each hook in `HOOKS'."
+  `(progn
+     (defun ,(intern (concat "me/" NAME "-setup")) () ,@BODY)
+     (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
+
 ;; Ui
 (setq inhibit-startup-screen t
       visible-bell t
@@ -503,6 +509,20 @@
 (use-package haskell-mode
   :straight t)
 
+;; required by swift-mode
+(use-package editorconfig
+    :straight t
+    :config
+    (editorconfig-mode +1))
+
+(use-package swift-mode
+  :defines (swift-mode:basic-offset)
+  :straight t
+  :mode "\\.swift\\'"
+  :interpreter "swift"
+  :config
+  (setq swift-mode:basic-offset 8))
+
 (use-package gptel
   :straight t
   :defines (gptel-mode-map
@@ -558,7 +578,8 @@
 					:initializationOptions (:hints nil)))
 		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
 		       (typescript-mode . ("deno" "lsp"
-					   :initializationOptions (:enable t)))))
+					   :initializationOptions (:enable t)))
+		       (swift-mode . ("sourcekit-lsp"))))
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c e r" 'eglot-rename)
@@ -595,12 +616,6 @@
 
   (setq-default electric-pair-inhibit-predicate #'me/inhibit-electric-pair-mode-p))
 
-;; (defmacro me/lang-setup (name hooks &rest body)
-(defmacro me/lang-setup (NAME HOOKS &rest BODY)
-  "Create a setup func with the `NAME' and `BODY'.  Add it to each hook in `HOOKS'."
-  `(progn
-     (defun ,(intern (concat "me/" NAME "-setup")) () ,@BODY)
-     (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
 
 (me/lang-setup "ts-js"
 	       '(typescript-ts-mode-hook js-mode-hook js-ts-mode-hook)
@@ -623,7 +638,6 @@
 	       '(conf-mode-hook)
 	       (setq tab-width 4)  ;; default tab-width of 8 is a bit intense
 	       (setq c-basic-offset 4))
-
 
 (setq treesit-language-source-alist
   '((css "https://github.com/tree-sitter/tree-sitter-css")
