@@ -1,4 +1,4 @@
-;;; package --- Summary  -*- lexical-binding: t; -*-
+;; package --- Summary  -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; My Emacs configuration
 
@@ -288,6 +288,7 @@
   (keymap-set flymake-mode-map "M-n" 'flymake-goto-next-error)
   (keymap-set flymake-mode-map "M-p"' flymake-goto-prev-error))
 
+;; commented out blocks not needed due to evil
 (use-package god-mode
   :straight t
   :defines (god-exempt-major-modes
@@ -305,25 +306,25 @@
   (require 'god-mode) ;; this is required i think
   (require 'god-mode-isearch) ;; this is required i think
   
-  (defun me/god-mode-update-cursor-type ()
-    (setq cursor-type
-	  (cond
-	   (god-local-mode 'box)
-	   (buffer-read-only 'hollow)
-	   (t 'bar))))
+  ;; (defun me/god-mode-update-cursor-type ()
+  ;;   (setq cursor-type
+  ;; 	  (cond
+  ;; 	   (god-local-mode 'box)
+  ;; 	   (buffer-read-only 'hollow)
+  ;; 	   (t 'bar))))
   
-  (defun me/god-mode-toggle-on-overwrite ()
-    "Toggle god-mode on overwrite-mode."
-    (if (bound-and-true-p overwrite-mode)
-	(god-local-mode-pause)
-      (god-local-mode-resume)))
+  ;; (defun me/god-mode-toggle-on-overwrite ()
+  ;;   "toggle god-mode on overwrite-mode."
+  ;;   (if (bound-and-true-p overwrite-mode)
+  ;; 	(god-local-mode-pause)
+  ;;     (god-local-mode-resume)))
 
-  (defun me/god-mode-q-passthrough ()
-    "Sends q as a char rather than C-q."
-    (interactive)
-    (self-insert-command 1 ?q))
+  ;; (defun me/god-mode-q-passthrough ()
+  ;;   "sends q as a char rather than c-q."
+  ;;   (interactive)
+  ;;   (self-insert-command 1 ?q))
 
-  :bind (("<escape>" . god-mode-all)
+  :bind (;;("<escape>" . god-mode-all)
 	 :map god-local-mode-map
 	 ("." . repeat)
 	 ("C-x C-1" . delete-other-windows)
@@ -340,14 +341,24 @@
 	 :map god-mode-isearch-map
 	 ("<escape>" . god-mode-isearch-disable)
 	 :map compilation-mode-map
-	 ("M-g" . recompile))
+	 ("M-g" . recompile)))
   
-  :hook ((post-command-hook . me/god-mode-update-cursor-type)
-	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite))
+  ;; :hook ((post-command-hook . me/god-mode-update-cursor-type)
+  ;; 	 (overwrite-mode-hook . me/god-mode-toggle-on-overwrite))
 
+  ;; :config
+  ;; (setq god-exempt-major-modes nil
+  ;; 	god-exempt-predicates nil))
+
+(use-package evil
+  :straight t
+  :init
+  (evil-mode 1)
   :config
-  (setq god-exempt-major-modes nil
-	god-exempt-predicates nil))
+  (setq evil-want-C-u-scroll t)
+  (evil-set-undo-system 'undo-redo)
+  (evil-set-leader '(normal visual motion) (kbd ","))
+  (evil-define-key '(normal visual motion) 'global (kbd "<leader>") 'god-execute-with-current-bindings))
 
 (use-package which-key
   :straight t
@@ -557,7 +568,10 @@
 
 
 ;; Language stuff
-(add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
+(me/alist-add-many 'auto-mode-alist
+		   '(("\\.tsx?\\'" . typescript-ts-mode)
+		     ("\\.ya?ml\\'" . yaml-ts-mode)))
+
 
 (require 'eglot)
 (with-eval-after-load 'eglot
@@ -577,6 +591,8 @@
 		       (java-ts-mode . (,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
 					:initializationOptions (:hints nil)))
 		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
+		       ;; (csharp-mode . ("/opt/omnisharp-roslyn/run" "-v" "-lsp"))
+		       (csharp-mode . ("csharp-ls" "--log-level debug"))
 		       (typescript-mode . ("deno" "lsp"
 					   :initializationOptions (:enable t)))
 		       (swift-mode . ("sourcekit-lsp"))))
@@ -650,7 +666,8 @@
     (python "https://github.com/tree-sitter/tree-sitter-python")
     (rust "https://github.com/tree-sitter/tree-sitter-rust")
     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
-    (typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")))
+    (typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")
+    (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
 
 (defun me/install-all-treesitter-grammars ()
