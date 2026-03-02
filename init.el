@@ -41,7 +41,7 @@
   (cond
    ((string= (system-name) "george-gentoo") me/desktop-config)
    ((string= (system-name) "george-thinkpad") me/thinkpad-config)
-   ((string= (system-name) "Georges-MacBook-Pro.local") me/macbook-config)
+   ((string= system-type "darwin") me/macbook-config)
    ((string= (system-name) "SHCS-PC77") me/windows-config)
    (t (make-me/config))))
 
@@ -524,7 +524,7 @@
 (use-package editorconfig
     :straight t
     :config
-    (editorconfig-mode +1))
+    :hook (editorconfig-mode . swift-mode))
 
 (use-package swift-mode
   :defines (swift-mode:basic-offset)
