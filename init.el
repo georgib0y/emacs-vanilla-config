@@ -355,10 +355,18 @@
   :init
   (evil-mode 1)
   :config
+  (evil-set-initial-state 'special-mode 'emacs)
+  (evil-set-initial-state 'dired-mode 'emacs)
+
   (setq evil-want-C-u-scroll t)
   (evil-set-undo-system 'undo-redo)
   (evil-set-leader '(normal visual motion) (kbd ","))
-  (evil-define-key '(normal visual motion) 'global (kbd "<leader>") 'god-execute-with-current-bindings))
+  (evil-define-key '(normal visual motion) 'global (kbd "<leader>") 'god-execute-with-current-bindings)
+  (evil-define-key 'normal 'global (kbd "<tab>") 'indent-for-tab-command)
+  (evil-define-key 'normal flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
+  (evil-define-key 'normal flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
+  (evil-define-key 'normal 'global (kbd "M-.") 'xref-find-definitions)
+  (evil-define-key 'motion compilation-mode-map (kbd "g") 'recompile))
 
 (use-package which-key
   :straight t
@@ -595,6 +603,8 @@
 		       (csharp-mode . ("csharp-ls" "--log-level debug"))
 		       (typescript-mode . ("deno" "lsp"
 					   :initializationOptions (:enable t)))
+		       (tsx-ts-mode . ("deno" "lsp"
+					      :initializationOptions (:enable t)))
 		       (swift-mode . ("sourcekit-lsp"))))
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
