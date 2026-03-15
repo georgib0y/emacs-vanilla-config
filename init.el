@@ -677,7 +677,8 @@
     (rust "https://github.com/tree-sitter/tree-sitter-rust")
     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
     (typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")
-    (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+    (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+    (docker "https://github.com/camdencheek/tree-sitter-dockerfile")))
 
 
 (defun me/install-all-treesitter-grammars ()
