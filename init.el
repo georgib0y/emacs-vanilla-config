@@ -352,21 +352,37 @@
 
 (use-package evil
   :straight t
+  :preface
+  ;; evil-want... should be set before evil is loaded
+  (setq evil-want-C-u-scroll t)
+  ;; TODO evil-disable-insert-state-bindings?
   :init
   (evil-mode 1)
   :config
-  (evil-set-initial-state 'special-mode 'emacs)
-  (evil-set-initial-state 'dired-mode 'emacs)
-
-  (setq evil-want-C-u-scroll t)
-  (evil-set-undo-system 'undo-redo)
   (evil-set-leader '(normal visual motion) (kbd ","))
-  (evil-define-key '(normal visual motion) 'global (kbd "<leader>") 'god-execute-with-current-bindings)
-  (evil-define-key 'normal 'global (kbd "<tab>") 'indent-for-tab-command)
-  (evil-define-key 'normal flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
-  (evil-define-key 'normal flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
-  (evil-define-key 'normal 'global (kbd "M-.") 'xref-find-definitions)
-  (evil-define-key 'motion compilation-mode-map (kbd "g") 'recompile))
+
+  ;; is needed? what about just using evil-execute-in-emacs?
+  ;; (evil-set-initial-state 'special-mode 'emacs)
+
+  (evil-set-undo-system 'undo-redo)
+  (evil-define-key '(normal visual motion) 'global
+    (kbd "<leader>") 'god-execute-with-current-bindings
+    (kbd "|") 'evil-execute-in-emacs-state-buffer
+    (kbd "\\") project-prefix-map)
+
+  (evil-define-key 'normal 'global
+    (kbd "<tab>") 'indent-for-tab-command
+    (kbd "M-.") 'xref-find-definitions)
+
+  ;; don't need to rebind these just use '\' (evil-execute-in-emacs)
+  ;; but g in compilation mode does not unset emacs mode back into motion mode
+  (evil-define-key 'motion compilation-mode-map
+    (kbd "g") 'recompile)
+
+  (evil-define-key 'normal flymake-mode-map
+    (kbd "M-n") 'flymake-goto-next-error
+    (kbd "M-p") 'flymake-goto-prev-error))
+
 
 (use-package which-key
   :straight t
@@ -601,10 +617,8 @@
 		       (haskell-mode . ("haskell-language-server-wrapper" "--lsp"))
 		       ;; (csharp-mode . ("/opt/omnisharp-roslyn/run" "-v" "-lsp"))
 		       (csharp-mode . ("csharp-ls" "--log-level debug"))
-		       (typescript-mode . ("deno" "lsp"
-					   :initializationOptions (:enable t)))
-		       (tsx-ts-mode . ("deno" "lsp"
-					      :initializationOptions (:enable t)))
+		       ((typescript-mode tsx-ts-mode js-mode js-jsx-mode js-json-mode json-ts-mode) .
+			("deno" "lsp" :initializationOptions (:enable t)))
 		       (swift-mode . ("sourcekit-lsp"))))
 
   (keymap-set eglot-mode-map "C-c e a" 'eglot-code-actions)
@@ -726,7 +740,7 @@
 (defvar me/keybinds-mode-map (make-sparse-keymap))
 (dolist (keybind
 	 `(("C-c o x" . scratch-buffer)
-	   ("C-c o r" . me/reload-file)
+	   ("C-c o r" . ,(me/leave-msg "use revert-buffer quick C-x x g (,x xg)"))
 	   ("C-c C-d" . duplicate-line)
 	   ("C-c s" . just-one-space)
 	   ("C-c z" . zap-up-to-char)
