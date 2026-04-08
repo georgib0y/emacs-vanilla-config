@@ -195,6 +195,19 @@
      (defun ,(intern (concat "me/" NAME "-setup")) () ,@BODY)
      (dolist (h ,HOOKS) (add-hook h ',(intern (concat "me/" NAME "-setup"))))))
 
+(require 'project)
+(defun me/project-revert-all-file-buffers ()
+  "Revert any file buffers in the current project, discarding unsaved work."
+  (interactive)
+  (unless (project-current) (error "No current project"))
+  (save-excursion
+    (dolist (buf (project-buffers (project-current)))
+      (let ((filename (buffer-file-name buf)))
+	(when filename
+	  (set-buffer buf)
+	  (revert-buffer t t)
+	  (message "Reverted buffer %s" filename))))))
+
 ;; Ui
 (setq inhibit-startup-screen t
       visible-bell t
@@ -249,21 +262,7 @@
 (setq disabled-command-function nil)
 
 ;; Package Setup
-;; Add repos and ensure use-package is installed
-;; (require 'package)
-
-;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-
-;; ;; install use-pacakge if not already present
-;; (unless (package-installed-p 'use-package)
-;;   (package-refresh-contents)
-;;   (package-install 'use-package)
-;;   (eval-when-compile (require 'use-package)))
-
 ;; setup straight.el
-;; TODO should actually be in early-init
-(setq package-enable-at-startup nil)
-
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name
@@ -280,7 +279,9 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'use-package)
+(if (fboundp 'straight-use-package)
+    (straight-use-package 'use-package)
+  (error "Could not run straight-use-package"))
 
 (require 'flymake)
 (with-eval-after-load 'flymake
@@ -354,21 +355,25 @@
   :straight t
   :preface
   ;; evil-want... should be set before evil is loaded
-  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-u-scroll t
+	evil-move-beyond-eol nil
+	evil-visual-state-cursor 'hollow
+	evil-motion-state-cursor '(hbar . 8))
   ;; TODO evil-disable-insert-state-bindings?
   :init
   (evil-mode 1)
   :config
   (evil-set-leader '(normal visual motion) (kbd ","))
 
-  ;; is needed? what about just using evil-execute-in-emacs?
-  ;; (evil-set-initial-state 'special-mode 'emacs)
+  (evil-set-initial-state 'special-mode 'motion)
+  (evil-set-initial-state 'magit-status-mode 'motion)
 
   (evil-set-undo-system 'undo-redo)
   (evil-define-key '(normal visual motion) 'global
     (kbd "<leader>") 'god-execute-with-current-bindings
-    (kbd "|") 'evil-execute-in-emacs-state-buffer
-    (kbd "\\") project-prefix-map)
+    (kbd ".") project-prefix-map ;; was evil-repeat but barely used
+    (kbd "z z") 'recenter-top-bottom)
+  
 
   (evil-define-key 'normal 'global
     (kbd "<tab>") 'indent-for-tab-command
@@ -381,7 +386,10 @@
 
   (evil-define-key 'normal flymake-mode-map
     (kbd "M-n") 'flymake-goto-next-error
-    (kbd "M-p") 'flymake-goto-prev-error))
+    (kbd "M-p") 'flymake-goto-prev-error)
+
+  (evil-define-key 'motion help-mode-map
+    (kbd "<tab>") 'forward-button))
 
 
 (use-package which-key
@@ -764,6 +772,8 @@
 
 ;; run this hook after everything else
 (add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
+
+(define-key project-prefix-map (kbd "C-r") #'me/project-revert-all-file-buffers)
 
 (provide 'init)
 ;;; init.el ends here
