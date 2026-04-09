@@ -26,7 +26,7 @@
 
 (defvar me/macbook-config
   (make-me/config
-   :font-size 180
+   :font-size 160
    :enable-menu-bar t))
 
 (defvar me/windows-config
