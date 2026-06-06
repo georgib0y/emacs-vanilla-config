@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: @compileError TODO
+# key: @TODO
+# --
+@compileError("TODO: $0");

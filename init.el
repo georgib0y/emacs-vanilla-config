@@ -1,16 +1,732 @@
 ;;; package --- Summary ;;; -*- lexical-binding: t; -*-
 ;;; Commentary:
-;; My Emacs configuration, put config files in the elisp folder in the emacs dir
-
+;; My Emacs configuration
 ;;; Code:
-(push (expand-file-name "elisp" user-emacs-directory) load-path)
+;; GC and Buffer Sizes
+;; Increase the size of buffers and garbage collection threshold - this isn't the 1900's anymore.
+(setq gc-cons-threshold (* 100 1024 1024) ;100mb (as rec. by lsp-mode)
+      read-process-output-max (* 1024 1024)) ; 1mb (/proc/sys/fs/pipe-max-size)
 
-(require 'me-functions)
-(require 'me-system-specific-config)
-(require 'me-behaviour-config)
-(require 'me-keybinds)
-(require 'me-lsp-config)
-(require 'me-packages)
+;; registers
+(set-register ?c `(file . ,user-init-file))
+(set-register ?b '(file . "~/.bashrc"))
+(set-register ?z '(file . "~/.zshrc"))
+(set-register ?p '(file . "~/.profile"))
+
+(load (concat user-emacs-directory "util.el"))
+(require 'util)
+
+;;; System specific config
+(require 'cl-lib)
+
+(cl-defstruct me/config
+  "A collection of variables that could change based on the computer/system I'm on."
+  (setup-fn nil :type function)
+  (tmp-dir "/tmp" :type string
+	   :documentation "full path to tmp dir WITHOUT trailing slashes")
+  (ruler-col 80 :type number)
+  (font nil :type string)
+  (fontsize nil :type number)
+  (light-themes '(doom-feather-light
+		  doom-flatwhite
+		  doom-oksolar-light
+		  doom-one-light
+		  doom-opera-light
+		  doom-solarized-light
+		  doom-tomorrow-day
+		  doom-winter-is-coming-light
+		  modus-operandi-tinted
+		  tsdh-light)
+		:type list)
+  (dark-themes '(doom-xcode doom-badger doom-challenger-deep doom-miramare doom-rouge)
+	       :type list)
+  (theme-type 'dark :type symbol
+	      :documentation "either `dark' or `light'. nil disable themes")
+  (enable-treesitter t :type boolean)
+  (enable-menu-bar nil :type boolean)
+
+  (csharp-lsp '("csharp-ls" "--log-level debug") :type eglot-server )
+  (go-lsp '("gopls" "-remote=auto") :type eglot-server)
+  (haskell-lsp '("haskell-language-server-wrapper" "--lsp") :type eglot-server)
+  (java-lsp `(,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
+	      :initializationOptions (:hints nil))
+	    :type eglot-server)
+  (js-lsp #'me/choose-js-lsp-server-program :type eglot-server)
+  (rust-lsp '("rust-analyzer") :type eglot-server)
+  (swift-lsp '("sourcekit-lsp") :type eglot-server)
+  (python-lsp '("pylsp") :type eglot-server)
+  (zig-lsp '("zls") :type eglot-server))
+
+(defun me/macbook-setup ()
+  "Setup function to run on macOS."
+  ;; TODO
+  ;; (setenv "NODE_PATH" "/opt/homebrew/lib/node_modules/")
+  (setq frame-resize-pixelwise t
+	ns-function-modifier 'none
+	ns-auto-hide-menu-bar 'nil))
+
+(defvar me/curr-config
+  (cond
+   ((string= (system-name) "george-gentoo")
+    (make-me/config
+     :fontsize 16))
+   
+   ((string= (system-name) "george-thinkpad")
+    (make-me/config
+     :fontsize 16))
+   
+   ((string= system-type "darwin")
+    (make-me/config
+     :font "IBM Plex Mono Semibold"
+     :fontsize 18
+     :enable-menu-bar t
+     :theme-type 'light
+     :dark-themes '(doom-monokai-pro)
+     :light-themes '(doom-flatwhite)
+     :setup-fn #'me/macbook-setup))
+
+   ((string= (system-name) "SHCS-PC77")
+    (make-me/config
+     :tmp-dir (file-name-concat user-emacs-directory "tmp")
+     :font 120
+     :theme-type 'light
+     :enable-treesitter nil
+     :python-lsp '("pyright-langserver" "--stdio")))
+   
+   (t (make-me/config))))
+
+(defun me/curr-theme-list ()
+  "Return the current theme list for `me/curr-config' or nil if disabled."
+  (cond ((eq 'light (me/config-theme-type me/curr-config))
+	 (me/config-light-themes me/curr-config))
+	((eq 'dark (me/config-theme-type me/curr-config))
+	 (me/config-dark-themes me/curr-config))
+	((null (me/config-theme-type me/curr-config)) nil)
+	(t (error "Unknown theme-type `%s' for me/curr-config"
+		  (me/config-theme-type me/curr-config)))))
+
+(when (me/config-setup-fn me/curr-config)
+  (funcall (me/config-setup-fn me/curr-config)))
+
+;;; Behaviour
+(let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
+  (setq custom-file customise-file)
+  (load customise-file t)) ;; create file if no exist
+
+;; Backup file
+;; Put any backup files in the .conf folder instead of in the working dir
+;; place file backups in conf emacs instead of littered around the place
+(setq backup-directory-alist `(("." . ,(file-name-concat user-emacs-directory "backups")))
+      backup-by-copying t
+      version-control t
+      delete-old-versions t)
+
+;; Lock-file transforms
+;; Put lock files in tmp instead of littered around the place.
+;; Extracts the filename from the path and appends it to /tmp, uniq-ifying if needed.
+;; Take into consideration permissions of where the file is stored, as lock files
+;; are supposed to be able to be read by anyone
+(setq lock-file-name-transforms
+      `(("\\`/.*/\\([^/]+\\)\\'"
+	 ,(file-name-concat (me/config-tmp-dir me/curr-config) "\\1")
+	 t)))
+
+;; Auto-save file transforms
+;; Put remote autosave in /tmp and put regular autosave in conf emacs.
+;; The ordering of this alist is important. The catch all should be at the end
+(setq auto-save-file-name-transforms
+      `(("\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'"
+	 ;; this probably wont work on Windows (\), but might not be an issue
+	 ,(file-name-concat (me/config-tmp-dir me/curr-config) "\\2")
+	 t)
+	(".*" ,(file-name-concat user-emacs-directory "auto-saves") t)))
+
+;;; Ui
+(setq inhibit-startup-screen t
+      visible-bell t
+      column-number-mode t
+      truncate-lines t)
+
+(unless (me/config-enable-menu-bar me/curr-config)
+  (menu-bar-mode -1))
+
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(global-display-line-numbers-mode t)
+(global-hl-line-mode 1)
+
+(pixel-scroll-mode 1)
+(pixel-scroll-precision-mode 1)
+
+(global-visual-line-mode 1)
+
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+
+(defun show-line-ruler ()
+  "Show a line rule at column set by the current system config."
+  (setq display-fill-column-indicator t
+	display-fill-column-indicator-column (me/config-ruler-col me/curr-config)
+	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
+  (display-fill-column-indicator-mode))
+
+(add-hook 'prog-mode-hook #'show-line-ruler)
+
+(require 'delsel)
+(delete-selection-mode 1)
+
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+(setq compilation-ask-about-save nil)
+
+;; turn off preserve case in query replace
+(setq case-replace nil)
+
+;; completions setup
+(setq completion-auto-select t
+      completions-max-height 20
+      completions-format 'one-column
+      read-file-name-completion-ignore-case t
+      read-buffer-completion-ignore-case t
+      completion-ignore-case t)
+
+;; set font for this and all other frames
+(let* ((info (font-info (frame-parameter nil 'font)))
+       (default-font-name (nth 2 (split-string (aref info 0) "-")))
+       (default-font-size (aref info 2))
+       (config-font (me/config-font me/curr-config))
+       (config-fontsize (me/config-fontsize me/curr-config)))
+  (modify-all-frames-parameters
+   `((font . ,(format "%s-%d"
+		      (if config-font config-font default-font-name)
+		      (if config-fontsize config-fontsize default-font-size))))))
+
+;; disable the complicated funcions disabler - I'm a big boy now
+(setq disabled-command-function nil)
+
+;;; Bootstrap Straight
+(defvar straight-use-package-by-default t)
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(if (fboundp 'straight-use-package)
+    (straight-use-package 'use-package)
+  (error "Could not run straight-use-package"))
+
+(with-eval-after-load 'use-package
+  (when init-file-debug
+    (defvar use-package-verbose t)
+    (defvar use-package-expand-minimally nil)
+    (defvar use-package-compute-statistics t)
+    (defvar use-package-always-defer t)
+    (setq debug-on-error t)))
+
+;;; Packages
+;; A few more useful configurations...
+(use-package emacs
+  :straight nil ;; nil doesnt install the package, only configures it
+  :custom
+  ;; TAB cycle if there are only few candidates
+  (completion-cycle-threshold 3)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  ;; (tab-always-indent nil)
+
+  ;; Emacs 30 and newer: Disable Ispell completion function.
+  ;; Try `cape-dict' as an alternative.
+  (text-mode-ispell-word-completion nil)
+
+  (context-menu-mode t)
+  ;; Support opening new minibuffers from inside existing minibuffers
+  (enable-recursive-minibuffers t)
+  
+  ;; Hide commands in M-x which do not apply to the current mode.  Corfu
+  ;; commands are hidden, since they are not used via M-x. This setting is
+  ;; useful beyond Corfu.
+  (read-extended-command-predicate #'command-completion-default-include-p)
+
+  (global-subword-mode 1)
+  (ns-control-modifier 'control)
+  (ns-alternate-modifier 'meta)
+  (ns-command-modifier 'super))
+
+(use-package exec-path-from-shell
+  :if (string= system-type "darwin") ;; only needed on macOS
+  :functions (exec-path-from-shell-initialize)
+  ;; todo, might need to expand PATH var in .zprofile
+  :config (exec-path-from-shell-initialize))
+
+(use-package which-key
+  :config
+  (which-key-mode))
+
+(use-package compile
+  :straight nil
+  :init
+  (defun me/filter-control-chars-compilation ()
+    "Filter out all the control chars spewed into the compilation buffer."
+    (let ((inhibit-read-only t))
+      (save-excursion
+	;; OSC sequences: ESC ] ... ST or BEL
+	(goto-char compilation-filter-start)
+	(while (re-search-forward "\033].*?\\(\007\\|\033\\\\\)" nil t)
+          (replace-match ""))
+	;; Lone ESC followed by a single char (e.g. ESC M)
+	(goto-char compilation-filter-start)
+	(while (re-search-forward "\033[^\\[]" nil t)
+          (replace-match ""))
+	;; CR used for progress bar overwriting
+	(goto-char compilation-filter-start)
+	(while (re-search-forward "\r" nil t)
+          (replace-match "")))))
+  
+  (defun colorize-compilation-buffer ()
+    (let ((inhibit-read-only t))
+      (ansi-color-apply-on-region compilation-filter-start (point))))
+  
+  :hook ((compilation-filter ansi-color-compilation-filter)
+	 (compilation-filter colorize-compilation-buffer)
+	 (compilation-filter my-compilation-filter-control-chars)))
+
+(use-package flymake
+  :defines (flymake-mode-map)
+  :straight nil
+  :hook (prog-mode . flymake-mode)
+  :bind (:map flymake-mode-map
+	      ("M-n" . flymake-goto-next-error)
+	      ("M-p" . flymake-goto-prev-error)))
+
+(use-package avy
+  :functions (avy-setup-default
+	      avy-goto-char
+	      avy-goto-line)
+  :bind (("C-;" . avy-goto-char)
+	 ("C-'" . avy-goto-char-2))
+  :config (avy-setup-default))
+
+
+(use-package god-mode
+  :defines (god-exempt-major-modes
+            god-exempt-predicates
+            god-local-mode
+            god-mode-alist
+	    god-local-mode-map
+            god-mode-isearch-map
+	    compilation-mode-map)
+  :functions (god-local-mode
+              god-local-mode-pause
+              god-local-mode-resume
+              god-mode-isearch-activate
+              god-mode-isearch-disable
+	      which-key-enable-god-mode-support)
+  :init
+  (require 'compile)
+  (require 'god-mode) ;; this is required i think
+  (require 'god-mode-isearch) ;; this is required i think
+
+  (defun me/god-mode-yank (&optional arg)
+    "Yank but manually trigger `delete-selection-pre-hook' beforehand"
+    (interactive "*P")
+    (delete-selection-pre-hook)
+    (yank arg))
+
+  (defun me/god-mode-yank-delete-selection ()
+    "Manually call `delete-selection-helper' for `me/god-mode-yank' if needed."
+    (delete-selection-helper 'yank))
+
+  :bind (("<escape>" . god-mode-all)
+         :map god-local-mode-map
+	 ("i" . god-mode-all)
+         ("." . repeat)
+	 ("," . other-window)
+         ("C-x C-1" . delete-other-windows)
+         ("C-x C-2" . split-window-below)
+         ("C-x C-3" . split-window-right)
+         ("C-x C-0" . delete-window)
+         ("[" . backward-paragraph)
+         ("]" . forward-paragraph)
+	 ("^" . delete-indentation)
+	 ("C-y" . me/god-mode-yank)
+	 :map special-mode-map
+	 ("C-q" . quit-window)
+         :map isearch-mode-map
+         ("<escape>" . god-mode-isearch-activate)
+         :map god-mode-isearch-map
+         ("<escape>" . god-mode-isearch-disable))
+         
+  :config
+    (defun me/god-mode-update-mode-line ()
+    "Update the mode line based on the state of `helix-mode'."
+    (cond
+     (god-local-mode
+      (set-face-attribute 'mode-line nil
+                          :foreground "#412b00"
+                          :background "#ebe19f")
+      (set-face-attribute 'mode-line-inactive nil
+                          :foreground "#3f3000"
+                          :background "#f7edb2"))
+     (t
+      (set-face-attribute 'mode-line nil
+			  :foreground "#0a0a0a"
+			  :background "#d7d7d7")
+      (set-face-attribute 'mode-line-inactive nil
+			  :foreground "#404148"
+			  :background "#efefef"))))
+
+  (setq god-mode-alist '((nil . "C-") ("j" . "M-") ("J" . "C-M-")))
+  (define-key god-local-mode-map (kbd "z") project-prefix-map)
+  (put 'me/god-mode-yank 'delete-selection 'me/god-mode-yank-delete-selection)
+  (which-key-enable-god-mode-support)
+  :hook ((post-command . me/god-mode-update-mode-line)))
+
+(use-package helix
+  :disabled
+  :functions (helix-mode
+	      helix-define-key
+	      me/god-mode-execute-out-of-helix
+	      me/resume-helix-mode)
+  :defines (helix-global-mode
+	    helix-normal-state-keymap)
+  :config
+  (helix-mode)
+  (defun me/helix-mode-update-mode-line ()
+    "Update the mode line based on the state of `helix-mode'."
+    (cond
+     (helix-global-mode
+      (set-face-attribute 'mode-line nil
+                          :foreground "#412b00"
+                          :background "#ebe19f")
+      (set-face-attribute 'mode-line-inactive nil
+                          :foreground "#3f3000"
+                          :background "#f7edb2"))
+     (t
+      (set-face-attribute 'mode-line nil
+			  :foreground "#0a0a0a"
+			  :background "#d7d7d7")
+      (set-face-attribute 'mode-line-inactive nil
+			  :foreground "#404148"
+			  :background "#efefef"))))
+
+  (keymap-unset helix-normal-state-keymap "C-c" t)
+  (with-eval-after-load 'compile
+    (helix-define-key 'goto "g" #'recompile 'compilation-mode))
+  :hook ((post-command . me/helix-mode-update-mode-line)))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package vertico
+  :functions (vertico-mode)
+  :custom
+  (vertico-scroll-margin 0)
+  (vertico-count 15)
+  (vertico-resize nil)
+  (vertico-cycle t)
+  :init
+  (vertico-mode))
+
+(use-package consult
+  :defines (xref-show-xrefs-function xref-show-definitions-function
+	    consult-theme consult-ripgrep consult-git-grep consult-grep
+	    consult-man consult-bookmark consult-recent-file consult-xref
+	    consult-source-bookmark consult-source-file-register
+	    consult-source-recent-file consult-source-project-recent-file
+	    consult-narrow-map consult-narrow-key)
+  :functions (consult-narrow-help consult-register-window consult-xref
+  consult-completion-in-region consult-customize)
+  :after vertico
+  ;; Replace bindings. Lazily loaded by `use-package'.
+  :bind (;; C-c bindings in `mode-specific-map'
+         ("C-c M-x" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ;; M-g bindings in `goto-map'
+         ("M-g e" . consult-compile-error)
+         ("M-g r" . consult-grep-match)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings in `search-map'
+         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+  :init
+  (advice-add #'register-preview :override #'consult-register-window)
+  (setq register-preview-delay 0.5)
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+  :config
+  (setq completion-in-region-function #'consult-completion-in-region)
+  (consult-customize
+   consult-theme :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep consult-man
+   consult-bookmark consult-recent-file consult-xref
+   consult-source-bookmark consult-source-file-register
+   consult-source-recent-file consult-source-project-recent-file
+   :preview-key '(:debounce 0.4 any))
+  (setq consult-narrow-key "<") ;; "C-+"
+  (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help))
+
+(use-package hl-todo
+  :functions (global-hl-todo-mode)
+  :config
+  (global-hl-todo-mode 1))
+
+(use-package ace-window
+  ;; :after (god-mode dired)
+  :defines (aw-keys)
+  :functions (ace-window)
+  :bind (("M-o" . 'ace-window))
+  :config
+  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+(use-package magit
+  :defines magit-define-global-key-bindings
+  :config
+  (setq magit-define-global-key-bindings 'recommended))
+
+(use-package doom-themes
+  :defines (doom-themes-enable-bold
+	    doom-themes-enable-italic)
+  :functions (doom-themes-visual-bell-config
+	      doom-themes-org-config
+	      me/pick-random-theme
+	      me/change-theme-on-project-advice)
+  :config
+  (setq doom-themes-enable-bold t
+	doom-themes-enable-italic t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-org-config)
+
+  (defun me/pick-random-theme ()
+    "Load a random theme from `me/curr-config' depending on `theme-type'."
+    (interactive)
+
+    (let* ((themes (me/curr-theme-list))
+	   (len (length themes))
+	   (curr (car custom-enabled-themes))
+	   (type (symbol-name (me/config-theme-type me/curr-config))))
+      (cond
+       ((eq len 0) (message "No %s themes selected" type))
+       ((eq len 1)
+	(message "Only 1 %s theme selected" type)
+	(load-theme (car themes) t)
+	(disable-theme curr))
+       ;; make sure to not set the theme to the same thing
+       (t (let ((theme (me/pick-rand themes)))
+	    (while (eq curr theme)
+	      (setq theme (me/pick-rand themes)))
+	    (load-theme theme t)
+	    (sleep-for 0.1) ;; sleep for a small amount of time to stop flickering when changing theme
+	    (disable-theme curr)
+	    (when (called-interactively-p 'interactive)
+	      (message "Loaded %s theme" theme)))))))
+
+  (defun me/toggle-dark-themes ()
+  "Toggle dark themes."
+  (interactive)
+  (if (eq (me/config-theme-type me/curr-config) 'light)
+      (progn
+	(message "Toggling dark themes")
+	(setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'dark))
+    (message "Toggling light themes")
+    (setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'light))
+  (me/pick-random-theme))
+
+  (when (me/config-theme-type me/curr-config)
+    (me/pick-random-theme)))
+
+(use-package yasnippet
+  :functions yas-global-mode
+  :init
+  (yas-global-mode 1))
+
+(use-package yasnippet-snippets)
+
+(use-package pyvenv)
+
+(use-package tramp
+  :functions (tramp-enable-method)
+  :defines (tramp-toolbox-program
+	    tramp-remote-path
+	    tramp-own-path)
+  :init
+  (setq tramp-toolbox-program "flatpak-spawn --host toolbox")
+  :config
+  (tramp-enable-method "toolbox")
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+
+;; (use-package inheritenv
+;;   :straight (:type git :host github :repo "purcell/inheritenv"))
+
+;; (use-package vterm)
+
+;; (use-package claude-code
+;;   :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main" :files ("*.el" (:exclude "images/*")))
+;;   :bind-keymap
+;;   ("C-c c" . claude-code-command-map)
+;;   :config
+;;   (claude-code-mode)
+;;   :custom
+;;   (claude-code-terminal-backend 'vterm))
+
+
+;;; Langauge/IDE setup
+(use-package reformatter)
+(use-package zig-mode
+  :after reformatter)
+
+(use-package haskell-mode)
+
+(use-package lsp-mode
+  :defines (lsp-keymap-prefix)
+  :functions (lsp-which-key-integration)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :bind (("C-c l l" . lsp))
+  :hook ((lsp-mode . lsp-which-key-integration))
+  :commands lsp)
+
+
+(use-package eglot
+  :straight nil
+  :init
+  (require 'compile)
+  :bind  ("C-c e e" . eglot)
+  :config
+  (setq
+   eglot-server-programs
+   `(((csharp-mode csharp-ts-mode) . ,(me/config-csharp-lsp me/curr-config))
+     ((go-mode go-ts-mode) . ,(me/config-go-lsp me/curr-config))
+     ((haskell-mode haskell-ts-mode) . ,(me/config-haskell-lsp me/curr-config))
+     ((java-mode java-ts-mode) . ,(me/config-java-lsp me/curr-config))
+     ((js-mode js-jsx-mode js-json-mode json-ts-mode typescript-mode tsx-ts-mode) .
+      ,(me/config-js-lsp me/curr-config))
+     ((rust-ts-mode rust-mode) . ,(me/config-rust-lsp me/curr-config))
+     ((swift-mode swift-ts-mode) . ,(me/config-swift-lsp me/curr-config))
+     ((python-mode python-ts-mode) . ,(me/config-python-lsp me/curr-config))
+     (zig-mode . ,(me/config-zig-lsp me/curr-config))))
+
+  (defun me/format-on-save-when-eglot-managed ()
+    "To be called from `before-save-hook'."
+    (when (eglot-managed-p) (eglot-format)))
+
+  (defun me/eglot-setup ()
+    (add-hook 'before-save-hook #'me/format-on-save-when-eglot-managed nil t)
+    (eglot-inlay-hints-mode -1)
+    (electric-layout-mode 1))
+
+  :hook ((eglot-managed-mode . me/eglot-setup)
+	 (compilation-filter . ansi-color-compilation-filter)))
+
+(use-package eldoc
+  :straight nil
+  :config
+  (setq eldoc-echo-area-use-multiline-p 15))
+
+(use-package electric-pair-mode
+  :straight nil
+  :hook (prog-mode . electric-pair-mode)) ;; TODO right way round?
+
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+
+
+(defvar me/keybinds-mode-map (make-sparse-keymap))
+(dolist (keybind
+	 `(("C-c o x" . scratch-buffer)
+	   ("C-c C-d" . duplicate-line)
+	   ("C-c l" . me/count-lines-reigon)
+	   ("C-c t" . me/create-tmp-file)))
+	  ;; ("C-c e e" . eglot)))
+  (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
+
+(define-minor-mode me/keybinds-mode
+  "Toggle my personal keybindings."
+  :global t
+  :lighter " keys"
+  :keymap me/keybinds-mode-map
+  :group 'me)
+
+(me/keybinds-mode 1)
+
+(defun me/keybinds-mode-most-precedent ()
+  "Shadow `minor-mode-map-alist' to put me keybinds at the top."
+  (add-to-list 'minor-mode-map-alist '(me/keybinds-mode . me/keybinds-mode-map)))
+
+;; run this hook after everything else
+(add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
+
+;; Org-mode setup
+(require 'org)
+(with-eval-after-load 'org
+  (org-babel-do-load-languages
+   'org-babel-load-languages '((shell . t) (js . t) (python . t) (plantuml . t)))
+
+  (setq org-src-preserve-indentation t)
+  ;; this will re-render images in any org file after a code block is executed
+  ;; only affects buffers when #+STARTUP: inlineimages is set
+  (add-hook 'org-babel-after-execute-hook
+            (lambda () (when org-inline-image-overlays (org-redisplay-inline-images)))))
+
+(require 'ob-plantuml)
+(with-eval-after-load 'ob-plantuml
+  (setq org-plantuml-exec-mode 'plantuml
+	org-plantuml-args '("-headless" "-utxt")))
 
 (provide 'init)
 ;;; init.el ends here
+	
