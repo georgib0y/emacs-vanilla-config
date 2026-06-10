@@ -12,6 +12,7 @@
 (set-register ?b '(file . "~/.bashrc"))
 (set-register ?z '(file . "~/.zshrc"))
 (set-register ?p '(file . "~/.profile"))
+(set-register ?a '(file . "~/.config/eca/config.json"))
 
 (load (concat user-emacs-directory "util.el"))
 (require 'util)
@@ -67,8 +68,12 @@
 
 (defvar me/curr-config
   (cond
-   ((string= (system-name) "george-gentoo")
+   ((string= (system-name) "george-atomic")
     (make-me/config
+     :theme-type 'light
+     :dark-themes '(doom-monokai-pro)
+     :light-themes '(doom-flatwhite)
+     :font "IBM Plex Mono Semibold"
      :fontsize 16))
    
    ((string= (system-name) "george-thinkpad")
@@ -237,6 +242,7 @@
 ;; A few more useful configurations...
 (use-package emacs
   :straight nil ;; nil doesnt install the package, only configures it
+  :bind-keymap ("C-\\" . project-prefix-map)
   :custom
   ;; TAB cycle if there are only few candidates
   (completion-cycle-threshold 3)
@@ -317,7 +323,6 @@
 	 ("C-'" . avy-goto-char-2))
   :config (avy-setup-default))
 
-
 (use-package god-mode
   :defines (god-exempt-major-modes
             god-exempt-predicates
@@ -366,7 +371,7 @@
          ("<escape>" . god-mode-isearch-activate)
          :map god-mode-isearch-map
          ("<escape>" . god-mode-isearch-disable))
-         
+
   :config
     (defun me/god-mode-update-mode-line ()
     "Update the mode line based on the state of `helix-mode'."
@@ -387,7 +392,6 @@
 			  :background "#efefef"))))
 
   (setq god-mode-alist '((nil . "C-") ("j" . "M-") ("J" . "C-M-")))
-  (define-key god-local-mode-map (kbd "z") project-prefix-map)
   (put 'me/god-mode-yank 'delete-selection 'me/god-mode-yank-delete-selection)
   (which-key-enable-god-mode-support)
   :hook ((post-command . me/god-mode-update-mode-line)))
@@ -610,19 +614,22 @@
   (tramp-enable-method "toolbox")
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 
-;; (use-package inheritenv
-;;   :straight (:type git :host github :repo "purcell/inheritenv"))
+(use-package eca
+  :functions (eca-completion-mode
+	      eca-complete)
+  :hook (prog-mode . eca-completion-mode)
+  :bind ("C-c e c" . eca-complete))
 
-;; (use-package vterm)
-
-;; (use-package claude-code
-;;   :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main" :files ("*.el" (:exclude "images/*")))
-;;   :bind-keymap
-;;   ("C-c c" . claude-code-command-map)
-;;   :config
-;;   (claude-code-mode)
-;;   :custom
-;;   (claude-code-terminal-backend 'vterm))
+(use-package cape
+  :defines (cape-prefix-map)
+  :functions (cape-dabbrev
+	      cape-file
+	      cape-elisp-block)
+  :bind ("C-c p" . cape-prefix-map)
+  :init
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-elisp-block))
 
 
 ;;; Langauge/IDE setup
@@ -646,7 +653,10 @@
   :straight nil
   :init
   (require 'compile)
-  :bind  ("C-c e e" . eglot)
+  :bind  (("C-c e e" . eglot)
+	  ("C-c e r" . eglot-rename)
+	  ("C-c e a" . eglot-code-actions))
+  
   :config
   (setq
    eglot-server-programs
