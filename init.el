@@ -163,8 +163,6 @@
 (pixel-scroll-mode 1)
 (pixel-scroll-precision-mode 1)
 
-(global-visual-line-mode 1)
-
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
 (defun show-line-ruler ()
@@ -617,8 +615,11 @@
 (use-package eca
   :functions (eca-completion-mode
 	      eca-complete)
+  :defines (eca-completion-idle-delay)
   :hook (prog-mode . eca-completion-mode)
-  :bind ("C-c e c" . eca-complete))
+  :bind ("C-c e c" . eca-complete)
+  :config
+  (setq eca-completion-idle-delay 4))
 
 (use-package cape
   :defines (cape-prefix-map)
@@ -692,14 +693,63 @@
   :straight nil
   :hook (prog-mode . electric-pair-mode)) ;; TODO right way round?
 
-(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+(use-package treesit
+  :straight nil
+  :if (me/config-enable-treesitter me/curr-config)
+  :init
+  (setq treesit-language-source-alist
+	'((c . ("https://github.com/tree-sitter/tree-sitter-c"))
+	  (go . ("https://github.com/tree-sitter/tree-sitter-go")) ;; TODO go-mod-ts-mode
+	  (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
+	  (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
+	  (css . ("https://github.com/tree-sitter/tree-sitter-css"))
+	  (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")) ;; TODO could this be file name concat?
+	  (bash . ("https://github.com/tree-sitter/tree-sitter-bash")) ;; TODO remap or automode?
+	  (html . ("https://github.com/tree-sitter/tree-sitter-html"))
+	  (java . ("https://github.com/tree-sitter/tree-sitter-java"))
+	  (json . ("https://github.com/tree-sitter/tree-sitter-json"))
+	  (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
+	  (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
+	  (yaml . ("https://github.com/tree-sitter-grammars/tree-sitter-yaml"))
+	  (python . ("https://github.com/tree-sitter/tree-sitter-python"))
+	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))))
+	  
+  (mapc (lambda (lang-src)
+	  (let ((lang (car lang-src)))
+	    (unless (treesit-language-available-p lang)
+	      (message "Installing treesitter grammar %s" (symbol-name lang))
+	      (treesit-install-language-grammar lang))))
+	treesit-language-source-alist)
+
+  (let ((remaps '((c-mode . c-ts-mode)
+		  (javascript-mode . js-ts-mode)
+		  (c++-mode . c++-ts-mode)
+		  (css-mode . css-ts-mode)
+		  (mhtml-mode . html-ts-mode)
+		  (java-mode . java-ts-mode)
+		  (conf-toml-mode . toml-ts-mode)
+		  (python-mode . python-ts-mode))))
+
+    (mapc (lambda (remap) (add-to-list 'major-mode-remap-alist remap))
+	  remaps))
+
+    (let ((auto-modes '(("\\.go\\'" . go-ts-mode)
+			("go\\.mod\\'" . go-ts-mode)
+			("\\.go\\'" . go-ts-mode)
+			("\\.tsx?\\'" . typescript-ts-mode)
+			("\\.rs\\'" . rust-ts-mode)
+			("\\.ya?ml\\'" . yaml-ts-mode))))
+
+      (mapc (lambda (auto) (add-to-list 'auto-mode-alist auto))
+	    auto-modes)))
+
 
 
 (defvar me/keybinds-mode-map (make-sparse-keymap))
 (dolist (keybind
 	 `(("C-c o x" . scratch-buffer)
 	   ("C-c C-d" . duplicate-line)
-	   ("C-c l" . me/count-lines-reigon)
+	   ("C-c l" . me/toggle-dark-themes)
 	   ("C-c t" . me/create-tmp-file)))
 	  ;; ("C-c e e" . eglot)))
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
