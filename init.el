@@ -113,6 +113,44 @@
 (when (me/config-setup-fn me/curr-config)
   (funcall (me/config-setup-fn me/curr-config)))
 
+;; Keybinds
+(define-key key-translation-map (kbd "C-h") (kbd "<DEL>"))
+
+(defvar me/keybinds-mode-map (make-sparse-keymap))
+(dolist (keybind
+	 `(("C-c o x" . scratch-buffer)
+	   ("C-c C-d" . duplicate-line)
+	   ("C-c l" . me/toggle-dark-themes)
+	   ("C-c t" . me/create-tmp-file)
+	   ("C-M-h" . backward-kill-word)))
+	    
+  (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
+
+(define-minor-mode me/keybinds-mode
+  "Toggle my personal keybindings."
+  :global t
+  :lighter " keys"
+  :keymap me/keybinds-mode-map
+  :group 'me)
+
+(me/keybinds-mode 1)
+
+(defun me/keybinds-mode-most-precedent ()
+  "Shadow `minor-mode-map-alist' to put me keybinds at the top."
+  (add-to-list 'minor-mode-map-alist '(me/keybinds-mode . me/keybinds-mode-map)))
+
+;; run this hook after everything else
+(add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
+
+(dolist (keybind
+	 `(("<RET>" . ,(me/leave-msg "use C-j instead"))
+	   ("<TAB>" . duplic)))
+
+	  ;; ("C-c e e" . eglot)))
+
+
+
+
 ;;; Behaviour
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
   (setq custom-file customise-file)
@@ -529,6 +567,7 @@
   (global-hl-todo-mode 1))
 
 (use-package ace-window
+  :disabled
   ;; :after (god-mode dired)
   :defines (aw-keys)
   :functions (ace-window)
@@ -679,7 +718,7 @@
   (defun me/eglot-setup ()
     (add-hook 'before-save-hook #'me/format-on-save-when-eglot-managed nil t)
     (eglot-inlay-hints-mode -1)
-    (electric-layout-mode 1))
+    (electric-layout-mode -1))
 
   :hook ((eglot-managed-mode . me/eglot-setup)
 	 (compilation-filter . ansi-color-compilation-filter)))
@@ -743,32 +782,6 @@
       (mapc (lambda (auto) (add-to-list 'auto-mode-alist auto))
 	    auto-modes)))
 
-
-
-(defvar me/keybinds-mode-map (make-sparse-keymap))
-(dolist (keybind
-	 `(("C-c o x" . scratch-buffer)
-	   ("C-c C-d" . duplicate-line)
-	   ("C-c l" . me/toggle-dark-themes)
-	   ("C-c t" . me/create-tmp-file)))
-	  ;; ("C-c e e" . eglot)))
-  (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
-
-(define-minor-mode me/keybinds-mode
-  "Toggle my personal keybindings."
-  :global t
-  :lighter " keys"
-  :keymap me/keybinds-mode-map
-  :group 'me)
-
-(me/keybinds-mode 1)
-
-(defun me/keybinds-mode-most-precedent ()
-  "Shadow `minor-mode-map-alist' to put me keybinds at the top."
-  (add-to-list 'minor-mode-map-alist '(me/keybinds-mode . me/keybinds-mode-map)))
-
-;; run this hook after everything else
-(add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
 
 ;; Org-mode setup
 (require 'org)
