@@ -142,14 +142,6 @@
 ;; run this hook after everything else
 (add-hook 'after-change-major-mode-hook #'me/keybinds-mode-most-precedent 99)
 
-(dolist (keybind
-	 `(("<RET>" . ,(me/leave-msg "use C-j instead"))
-	   ("<TAB>" . duplic)))
-
-	  ;; ("C-c e e" . eglot)))
-
-
-
 
 ;;; Behaviour
 (let ((customise-file (expand-file-name "custom.el" user-emacs-directory)))
