@@ -82,7 +82,7 @@
    
    ((string= system-type "darwin")
     (make-me/config
-     :font "IBM Plex Mono Semibold"
+     :font "IBM Plex Mono"
      :fontsize 18
      :enable-menu-bar t
      :theme-type 'light
@@ -351,112 +351,6 @@
 	 ("C-'" . avy-goto-char-2))
   :config (avy-setup-default))
 
-(use-package god-mode
-  :defines (god-exempt-major-modes
-            god-exempt-predicates
-            god-local-mode
-            god-mode-alist
-	    god-local-mode-map
-            god-mode-isearch-map
-	    compilation-mode-map)
-  :functions (god-local-mode
-              god-local-mode-pause
-              god-local-mode-resume
-              god-mode-isearch-activate
-              god-mode-isearch-disable
-	      which-key-enable-god-mode-support)
-  :init
-  (require 'compile)
-  (require 'god-mode) ;; this is required i think
-  (require 'god-mode-isearch) ;; this is required i think
-
-  (defun me/god-mode-yank (&optional arg)
-    "Yank but manually trigger `delete-selection-pre-hook' beforehand"
-    (interactive "*P")
-    (delete-selection-pre-hook)
-    (yank arg))
-
-  (defun me/god-mode-yank-delete-selection ()
-    "Manually call `delete-selection-helper' for `me/god-mode-yank' if needed."
-    (delete-selection-helper 'yank))
-
-  :bind (("<escape>" . god-mode-all)
-         :map god-local-mode-map
-	 ("i" . god-mode-all)
-         ("." . repeat)
-	 ("," . other-window)
-         ("C-x C-1" . delete-other-windows)
-         ("C-x C-2" . split-window-below)
-         ("C-x C-3" . split-window-right)
-         ("C-x C-0" . delete-window)
-         ("[" . backward-paragraph)
-         ("]" . forward-paragraph)
-	 ("^" . delete-indentation)
-	 ("C-y" . me/god-mode-yank)
-	 :map special-mode-map
-	 ("C-q" . quit-window)
-         :map isearch-mode-map
-         ("<escape>" . god-mode-isearch-activate)
-         :map god-mode-isearch-map
-         ("<escape>" . god-mode-isearch-disable))
-
-  :config
-    (defun me/god-mode-update-mode-line ()
-    "Update the mode line based on the state of `helix-mode'."
-    (cond
-     (god-local-mode
-      (set-face-attribute 'mode-line nil
-                          :foreground "#412b00"
-                          :background "#ebe19f")
-      (set-face-attribute 'mode-line-inactive nil
-                          :foreground "#3f3000"
-                          :background "#f7edb2"))
-     (t
-      (set-face-attribute 'mode-line nil
-			  :foreground "#0a0a0a"
-			  :background "#d7d7d7")
-      (set-face-attribute 'mode-line-inactive nil
-			  :foreground "#404148"
-			  :background "#efefef"))))
-
-  (setq god-mode-alist '((nil . "C-") ("j" . "M-") ("J" . "C-M-")))
-  (put 'me/god-mode-yank 'delete-selection 'me/god-mode-yank-delete-selection)
-  (which-key-enable-god-mode-support)
-  :hook ((post-command . me/god-mode-update-mode-line)))
-
-(use-package helix
-  :disabled
-  :functions (helix-mode
-	      helix-define-key
-	      me/god-mode-execute-out-of-helix
-	      me/resume-helix-mode)
-  :defines (helix-global-mode
-	    helix-normal-state-keymap)
-  :config
-  (helix-mode)
-  (defun me/helix-mode-update-mode-line ()
-    "Update the mode line based on the state of `helix-mode'."
-    (cond
-     (helix-global-mode
-      (set-face-attribute 'mode-line nil
-                          :foreground "#412b00"
-                          :background "#ebe19f")
-      (set-face-attribute 'mode-line-inactive nil
-                          :foreground "#3f3000"
-                          :background "#f7edb2"))
-     (t
-      (set-face-attribute 'mode-line nil
-			  :foreground "#0a0a0a"
-			  :background "#d7d7d7")
-      (set-face-attribute 'mode-line-inactive nil
-			  :foreground "#404148"
-			  :background "#efefef"))))
-
-  (keymap-unset helix-normal-state-keymap "C-c" t)
-  (with-eval-after-load 'compile
-    (helix-define-key 'goto "g" #'recompile 'compilation-mode))
-  :hook ((post-command . me/helix-mode-update-mode-line)))
-
 (use-package orderless
   :custom
   (completion-styles '(orderless basic))
@@ -558,15 +452,6 @@
   :config
   (global-hl-todo-mode 1))
 
-(use-package ace-window
-  :disabled
-  ;; :after (god-mode dired)
-  :defines (aw-keys)
-  :functions (ace-window)
-  :bind (("M-o" . 'ace-window))
-  :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
-
 (use-package magit
   :defines magit-define-global-key-bindings
   :config
@@ -663,7 +548,6 @@
   (add-hook 'completion-at-point-functions #'cape-file)
   (add-hook 'completion-at-point-functions #'cape-elisp-block))
 
-
 ;;; Langauge/IDE setup
 (use-package reformatter)
 (use-package zig-mode
@@ -679,7 +563,6 @@
   :bind (("C-c l l" . lsp))
   :hook ((lsp-mode . lsp-which-key-integration))
   :commands lsp)
-
 
 (use-package eglot
   :straight nil
