@@ -26,7 +26,8 @@
   (tmp-dir "/tmp" :type string
 	   :documentation "full path to tmp dir WITHOUT trailing slashes")
   (ruler-col 80 :type number)
-  (font nil :type string)
+  (font-spec (font-spec) :type object :documentation "a font spec")
+  (font nil :type string :documentation "the font family")
   (fontsize nil :type number)
   (light-themes '(doom-feather-light
 		  doom-flatwhite
@@ -46,7 +47,7 @@
   (enable-treesitter t :type boolean)
   (enable-menu-bar nil :type boolean)
 
-  (csharp-lsp '("csharp-ls" "--log-level debug") :type eglot-server )
+  (csharp-lsp '("csharp-ls" "--log-level debug") :type eglot-server)
   (go-lsp '("gopls" "-remote=auto") :type eglot-server)
   (haskell-lsp '("haskell-language-server-wrapper" "--lsp") :type eglot-server)
   (java-lsp `(,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
@@ -68,22 +69,24 @@
 
 (defvar me/curr-config
   (cond
-   ((string= (system-name) "george-atomic")
+   ((string= (system-name) "george-gentoo")
     (make-me/config
      :theme-type 'light
-     :dark-themes '(doom-monokai-pro)
-     :light-themes '(doom-flatwhite)
-     :font "IBM Plex Mono Semibold"
-     :fontsize 16))
+     ;; :dark-themes '(doom-monokai-pro)
+     ;; :light-themes '(doom-flatwhite)
+     :font-spec (font-spec :family "IBM Plex Mono"
+			   :size 18
+			   :weight 'medium)))
    
    ((string= (system-name) "george-thinkpad")
     (make-me/config
-     :fontsize 16))
+     :font-spec (font-spec :size 16)))
    
    ((string= system-type "darwin")
     (make-me/config
-     :font "IBM Plex Mono"
-     :fontsize 18
+     :font-spec (font-spec :family "IBM Plex Mono Medium"
+			   :size 16
+			   :weight 'medium)
      :enable-menu-bar t
      :theme-type 'light
      :dark-themes '(doom-monokai-pro)
@@ -93,7 +96,7 @@
    ((string= (system-name) "SHCS-PC77")
     (make-me/config
      :tmp-dir (file-name-concat user-emacs-directory "tmp")
-     :font 120
+     :font-spec (font-spec :size 18)
      :theme-type 'light
      :enable-treesitter nil
      :python-lsp '("pyright-langserver" "--stdio")))
@@ -177,6 +180,13 @@
 	(".*" ,(file-name-concat user-emacs-directory "auto-saves") t)))
 
 ;;; Ui
+;; set font for this and all other frames
+(defun me/set-frame-font ()
+  "Set the frame font based on `me/curr-config'."
+  (interactive)
+  (set-frame-font (me/config-font-spec me/curr-config) t t t))
+(me/set-frame-font)
+
 (setq inhibit-startup-screen t
       visible-bell t
       column-number-mode t
@@ -197,10 +207,14 @@
 
 (defun show-line-ruler ()
   "Show a line rule at column set by the current system config."
+  (set-fontset-font nil 'unicode "Monospace")
   (setq display-fill-column-indicator t
 	display-fill-column-indicator-column (me/config-ruler-col me/curr-config)
 	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
+	;; display-fill-column-indicator-character 124) ;; alternative character is 124 instead of 9474
   (display-fill-column-indicator-mode))
+
+
 
 (add-hook 'prog-mode-hook #'show-line-ruler)
 
@@ -221,17 +235,6 @@
       read-file-name-completion-ignore-case t
       read-buffer-completion-ignore-case t
       completion-ignore-case t)
-
-;; set font for this and all other frames
-(let* ((info (font-info (frame-parameter nil 'font)))
-       (default-font-name (nth 2 (split-string (aref info 0) "-")))
-       (default-font-size (aref info 2))
-       (config-font (me/config-font me/curr-config))
-       (config-fontsize (me/config-fontsize me/curr-config)))
-  (modify-all-frames-parameters
-   `((font . ,(format "%s-%d"
-		      (if config-font config-font default-font-name)
-		      (if config-fontsize config-fontsize default-font-size))))))
 
 ;; disable the complicated funcions disabler - I'm a big boy now
 (setq disabled-command-function nil)
@@ -521,12 +524,16 @@
   :functions (tramp-enable-method)
   :defines (tramp-toolbox-program
 	    tramp-remote-path
-	    tramp-own-path)
+	    tramp-own-path
+	    tramp-connection-properties)
   :init
   (setq tramp-toolbox-program "flatpak-spawn --host toolbox")
   :config
   (tramp-enable-method "toolbox")
-  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+  (add-to-list 'tramp-connection-properties
+	       (list (regexp-quote "/ssh::")
+		     "session-timeout" 300)))
 
 (use-package eca
   :functions (eca-completion-mode
@@ -652,7 +659,8 @@
 			("\\.go\\'" . go-ts-mode)
 			("\\.tsx?\\'" . typescript-ts-mode)
 			("\\.rs\\'" . rust-ts-mode)
-			("\\.ya?ml\\'" . yaml-ts-mode))))
+			("\\.ya?ml\\'" . yaml-ts-mode)
+			("\\.jsonc?\\'" . json-ts-mode))))
 
       (mapc (lambda (auto) (add-to-list 'auto-mode-alist auto))
 	    auto-modes)))
