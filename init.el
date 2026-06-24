@@ -27,8 +27,9 @@
 	   :documentation "full path to tmp dir WITHOUT trailing slashes")
   (ruler-col 80 :type number)
   (font-spec (font-spec) :type object :documentation "a font spec")
-  (font nil :type string :documentation "the font family")
-  (fontsize nil :type number)
+  (ruler-char 9474 :type number "what char to use as the ruler, 124 is also good")
+  ;; (font nil :type string :documentation "the font family")
+  ;; (fontsize nil :type number)
   (light-themes '(doom-feather-light
 		  doom-flatwhite
 		  doom-oksolar-light
@@ -46,6 +47,7 @@
 	      :documentation "either `dark' or `light'. nil disable themes")
   (enable-treesitter t :type boolean)
   (enable-menu-bar nil :type boolean)
+  (shell nil :type string :documentation "path to shell for `exec-path-from-shell'")
 
   (csharp-lsp '("csharp-ls" "--log-level debug") :type eglot-server)
   (go-lsp '("gopls" "-remote=auto") :type eglot-server)
@@ -65,7 +67,8 @@
   ;; (setenv "NODE_PATH" "/opt/homebrew/lib/node_modules/")
   (setq frame-resize-pixelwise t
 	ns-function-modifier 'none
-	ns-auto-hide-menu-bar 'nil))
+	ns-auto-hide-menu-bar 'nil
+	ns-command-modifier 'meta))
 
 (defvar me/curr-config
   (cond
@@ -76,7 +79,8 @@
      ;; :light-themes '(doom-flatwhite)
      :font-spec (font-spec :family "IBM Plex Mono"
 			   :size 18
-			   :weight 'medium)))
+			   :weight 'medium)
+     :ruler-char 124))
    
    ((string= (system-name) "george-thinkpad")
     (make-me/config
@@ -85,10 +89,11 @@
    ((string= system-type "darwin")
     (make-me/config
      :font-spec (font-spec :family "IBM Plex Mono Medium"
-			   :size 16
+			   :size 18
 			   :weight 'medium)
      :enable-menu-bar t
      :theme-type 'light
+     ;; :shell "/opt/homebrew/bin/fish"
      :dark-themes '(doom-monokai-pro)
      :light-themes '(doom-flatwhite)
      :setup-fn #'me/macbook-setup))
@@ -180,7 +185,7 @@
 	(".*" ,(file-name-concat user-emacs-directory "auto-saves") t)))
 
 ;;; Ui
-;; set font for this and all other frames
+;; set fontN for this and all other frames
 (defun me/set-frame-font ()
   "Set the frame font based on `me/curr-config'."
   (interactive)
@@ -207,21 +212,18 @@
 
 (defun show-line-ruler ()
   "Show a line rule at column set by the current system config."
-  (set-fontset-font nil 'unicode "Monospace")
-  (setq display-fill-column-indicator t
-	display-fill-column-indicator-column (me/config-ruler-col me/curr-config)
-	display-fill-column-indicator-character 9474) ;; alternative character is 124 instead of 9474
-	;; display-fill-column-indicator-character 124) ;; alternative character is 124 instead of 9474
-  (display-fill-column-indicator-mode))
-
-
+    (setq display-fill-column-indicator t
+	  display-fill-column-indicator-column  (me/config-ruler-col me/curr-config)
+	  display-fill-column-indicator-character
+	  (me/config-ruler-char me/curr-config)) ;; alternative character is 124 instead of 9474
+    (display-fill-column-indicator-mode))
 
 (add-hook 'prog-mode-hook #'show-line-ruler)
 
 (require 'delsel)
 (delete-selection-mode 1)
 
-(defalias 'yes-or-no-p 'y-or-n-p)
+;; (defalias 'yes-or-no-p 'y-or-n-p)
 
 (setq compilation-ask-about-save nil)
 
@@ -303,6 +305,10 @@
 (use-package exec-path-from-shell
   :if (string= system-type "darwin") ;; only needed on macOS
   :functions (exec-path-from-shell-initialize)
+  :defines (exec-path-from-shell-shell-name)
+  :init
+  (when-let* ((s (me/config-shell me/curr-config)))
+    (setq exec-path-from-shell-shell-name s))
   ;; todo, might need to expand PATH var in .zprofile
   :config (exec-path-from-shell-initialize))
 
@@ -542,7 +548,7 @@
   :hook (prog-mode . eca-completion-mode)
   :bind ("C-c e c" . eca-complete)
   :config
-  (setq eca-completion-idle-delay 4))
+  (setq eca-completion-idle-delay 1))
 
 (use-package cape
   :defines (cape-prefix-map)
@@ -633,7 +639,8 @@
 	  (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
 	  (yaml . ("https://github.com/tree-sitter-grammars/tree-sitter-yaml"))
 	  (python . ("https://github.com/tree-sitter/tree-sitter-python"))
-	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))))
+	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))
+	  (dockerfile . ("https://github.com/camdencheek/tree-sitter-dockerfile"))))
 	  
   (mapc (lambda (lang-src)
 	  (let ((lang (car lang-src)))
@@ -660,7 +667,9 @@
 			("\\.tsx?\\'" . typescript-ts-mode)
 			("\\.rs\\'" . rust-ts-mode)
 			("\\.ya?ml\\'" . yaml-ts-mode)
-			("\\.jsonc?\\'" . json-ts-mode))))
+			("\\.jsonc?\\'" . json-ts-mode)
+			("Dockerfile" . dockerfile-ts-mode)
+			("Containerfile" . dockerfile-ts-mode))))
 
       (mapc (lambda (auto) (add-to-list 'auto-mode-alist auto))
 	    auto-modes)))
