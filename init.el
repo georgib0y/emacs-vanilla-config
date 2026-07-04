@@ -12,7 +12,8 @@
 (set-register ?b '(file . "~/.bashrc"))
 (set-register ?z '(file . "~/.zshrc"))
 (set-register ?p '(file . "~/.profile"))
-(set-register ?a '(file . "~/.config/eca/config.json"))
+(set-register ?h '(file . "~/.config/home-manager/home.nix"))
+(set-register ?n '(file . "/sudo::/etc/nixos/configuration.nix"))
 
 (require 'cl-lib)
 
@@ -158,8 +159,6 @@ or tls config."
   (ruler-col 80 :type number)
   (font-spec (font-spec) :type object :documentation "a font spec")
   (ruler-char 9474 :type number :documentation "what char to use as the ruler, 124 is also good")
-  ;; (font nil :type string :documentation "the font family")
-  ;; (fontsize nil :type number)
   (light-themes '(doom-feather-light
 		  doom-flatwhite
 		  doom-oksolar-light
@@ -189,7 +188,8 @@ or tls config."
   (rust-lsp '("rust-analyzer") :type eglot-server)
   (swift-lsp '("sourcekit-lsp") :type eglot-server)
   (python-lsp '("pylsp") :type eglot-server)
-  (zig-lsp '("zls") :type eglot-server))
+  (zig-lsp '("zls") :type eglot-server)
+  (nix-lsp '("nixd") :type eglot-server))
 
 (defun me/macbook-setup ()
   "Setup function to run on macOS."
@@ -198,15 +198,15 @@ or tls config."
 
 (defvar me/curr-config
   (cond
-   ((string= (system-name) "george-gentoo")
+   ((string= (system-name) "george-nixos")
     (make-me/config
      :theme-type 'light
      ;; :dark-themes '(doom-monokai-pro)
      ;; :light-themes '(doom-flatwhite)
      :font-spec (font-spec :family "IBM Plex Mono"
-			   :size 18
-			   :weight 'medium)
-     :ruler-char 124))
+			   :size 22
+			   :weight 'semi-bold)))
+
    
    ((string= (system-name) "george-thinkpad")
     (make-me/config
@@ -426,9 +426,11 @@ or tls config."
   (global-subword-mode 1)
   (ns-control-modifier 'control)
   (ns-alternate-modifier 'meta)
-  (ns-command-modifier 'meta)
-  (ns-function-modifier 'none))
-
+  (ns-function-modifier 'none)
+  (ns-command-modifier 'super)
+  :config
+  (setq password-cache-expiry 3600)) ;; timeout of 1hr
+  
 ;; (use-package exec-path-from-shell
 ;;   :if (string= system-type "darwin") ;; only needed on macOS
 ;;   :functions (exec-path-from-shell-initialize)
@@ -668,15 +670,6 @@ or tls config."
 	       (list (regexp-quote "/ssh::")
 		     "session-timeout" 300)))
 
-(use-package eca
-  :functions (eca-completion-mode
-	      eca-complete)
-  :defines (eca-completion-idle-delay)
-  :hook (prog-mode . eca-completion-mode)
-  :bind ("C-c e c" . eca-complete)
-  :config
-  (setq eca-completion-idle-delay 1))
-
 (use-package cape
   :defines (cape-prefix-map)
   :functions (cape-dabbrev
@@ -694,6 +687,13 @@ or tls config."
   :after reformatter)
 
 (use-package haskell-mode)
+
+(use-package nix-mode
+  :mode "\\.nix\\'")
+
+(use-package envrc
+  :if (string-equal (system-name) "george-nixos")
+  :hook (after-init . envrc-global-mode))
 
 (use-package lsp-mode
   :defines (lsp-keymap-prefix)
@@ -724,7 +724,8 @@ or tls config."
      ((rust-ts-mode rust-mode) . ,(me/config-rust-lsp me/curr-config))
      ((swift-mode swift-ts-mode) . ,(me/config-swift-lsp me/curr-config))
      ((python-mode python-ts-mode) . ,(me/config-python-lsp me/curr-config))
-     (zig-mode . ,(me/config-zig-lsp me/curr-config))))
+     (zig-mode . ,(me/config-zig-lsp me/curr-config))
+     (nix-mode . ,(me/config-nix-lsp me/curr-config))))
 
   (defun me/format-on-save-when-eglot-managed ()
     "To be called from `before-save-hook'."
@@ -768,7 +769,8 @@ or tls config."
 	  (yaml . ("https://github.com/tree-sitter-grammars/tree-sitter-yaml"))
 	  (python . ("https://github.com/tree-sitter/tree-sitter-python"))
 	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))
-	  (dockerfile . ("https://github.com/camdencheek/tree-sitter-dockerfile"))))
+	  (dockerfile . ("https://github.com/camdencheek/tree-sitter-dockerfile"))
+	  (haskell . ("https://github.com/tree-sitter/tree-sitter-haskell"))))
 	  
   (mapc (lambda (lang-src)
 	  (let ((lang (car lang-src)))
