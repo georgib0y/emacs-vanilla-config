@@ -447,26 +447,7 @@ or tls config."
 
 (use-package compile
   :straight nil
-  :init
-  (defun me/filter-control-chars-compilation ()
-    "Filter out all the control chars spewed into the compilation buffer."
-    (let ((inhibit-read-only t))
-      (save-excursion
-	;; OSC sequences: ESC ] ... ST or BEL
-	(goto-char compilation-filter-start)
-	(while (re-search-forward "\033].*?\\(\007\\|\033\\\\\)" nil t)
-          (replace-match ""))
-	;; Lone ESC followed by a single char (e.g. ESC M)
-	(goto-char compilation-filter-start)
-	(while (re-search-forward "\033[^\\[]" nil t)
-          (replace-match ""))
-	;; CR used for progress bar overwriting
-	(goto-char compilation-filter-start)
-	(while (re-search-forward "\r" nil t)
-          (replace-match "")))))
-  
-  :hook ((compilation-filter . ansi-color-compilation-filter)
-	 (compilation-filter . me/filter-control-chars-compilation)))
+  :hook (compilation-filter . ansi-color-compilation-filter))
 
 (use-package flymake
   :defines (flymake-mode-map)
