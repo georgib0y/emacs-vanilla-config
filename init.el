@@ -427,7 +427,7 @@ or tls config."
   (ns-control-modifier 'control)
   (ns-alternate-modifier 'meta)
   (ns-function-modifier 'none)
-  (ns-command-modifier 'super)
+  (ns-command-modifier 'meta)
   :config
   (setq password-cache-expiry 3600)) ;; timeout of 1hr
   
