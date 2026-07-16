@@ -683,7 +683,9 @@ or tls config."
 (use-package envrc
   :if (or (string-equal (system-name) "george-nixos")
 	  (string= system-type "darwin"))
-  :hook (after-init . envrc-global-mode))
+  :hook (after-init . envrc-global-mode)
+  :bind (("C-c n a" . envrc-allow)
+	 ("C-c n r" . envrc-reload)))
 
 (use-package eglot
   :straight nil
