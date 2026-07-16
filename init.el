@@ -7,14 +7,6 @@
 (setq gc-cons-threshold (* 100 1024 1024) ;100mb (as rec. by lsp-mode)
       read-process-output-max (* 1024 1024)) ; 1mb (/proc/sys/fs/pipe-max-size)
 
-;; registers
-(set-register ?c `(file . ,user-init-file))
-(set-register ?b '(file . "~/.bashrc"))
-(set-register ?z '(file . "~/.zshrc"))
-(set-register ?p '(file . "~/.profile"))
-(set-register ?h '(file . "~/.config/home-manager/home.nix"))
-(set-register ?n '(file . "/sudo::/etc/nixos/configuration.nix"))
-
 (require 'cl-lib)
 
 ;;; Me Functions
@@ -220,7 +212,7 @@ or tls config."
      :enable-menu-bar t
      :theme-type 'light
      ;; :shell "/opt/homebrew/bin/fish"
-     :dark-themes '(doom-monokai-pro)
+     :dark-themes '(doom-solarized-dark-high-contrast)
      :light-themes '(modus-operandi-tinted)
      :setup-fn #'me/macbook-setup))
 
@@ -233,6 +225,14 @@ or tls config."
      :python-lsp '("pyright-langserver" "--stdio")))
    
    (t (make-me/config))))
+
+;; registers
+(set-register ?c `(file . ,user-init-file))
+(set-register ?b '(file . "~/.bashrc"))
+(set-register ?z '(file . "~/.zshrc"))
+(set-register ?p '(file . "~/.profile"))
+(set-register ?h '(file . "~/.config/home-manager/home.nix"))
+(set-register ?n '(file . "/sudo::/etc/nixos/configuration.nix"))
 
 (defun me/curr-theme-list ()
   "Return the current theme list for `me/curr-config' or nil if disabled."
@@ -331,7 +331,7 @@ or tls config."
 (global-display-line-numbers-mode t)
 (global-hl-line-mode 1)
 
-(pixel-scroll-mode 1)
+;; (pixel-scroll-mode 1)
 (pixel-scroll-precision-mode 1)
 
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
@@ -389,13 +389,15 @@ or tls config."
     (straight-use-package 'use-package)
   (error "Could not run straight-use-package"))
 
-(with-eval-after-load 'use-package
+(use-package use-package
+  :straight nil
+  :config
   (when init-file-debug
-    (defvar use-package-verbose t)
-    (defvar use-package-expand-minimally nil)
-    (defvar use-package-compute-statistics t)
-    (defvar use-package-always-defer t)
-    (setq debug-on-error t)))
+    (setq use-package-verbose t
+	  use-package-expand-minimally nil
+	  use-package-compute-statistics t
+	  use-package-always-defer t
+	  debug-on-error t)))
 
 ;;; Packages
 ;; A few more useful configurations...
@@ -431,15 +433,15 @@ or tls config."
   :config
   (setq password-cache-expiry 3600)) ;; timeout of 1hr
   
-;; (use-package exec-path-from-shell
-;;   :if (string= system-type "darwin") ;; only needed on macOS
-;;   :functions (exec-path-from-shell-initialize)
-;;   :defines (exec-path-from-shell-shell-name)
-;;   :init
-;;   (when-let* ((s (me/config-shell me/curr-config)))
-;;     (setq exec-path-from-shell-shell-name s))
-;;   ;; todo, might need to expand PATH var in .zprofile
-;;   :config (exec-path-from-shell-initialize))
+(use-package exec-path-from-shell
+  :if (string= system-type "darwin") ;; only needed on macOS
+  :functions (exec-path-from-shell-initialize)
+  :defines (exec-path-from-shell-shell-name)
+  :init
+  (when-let* ((s (me/config-shell me/curr-config)))
+    (setq exec-path-from-shell-shell-name s))
+  ;; todo, might need to expand PATH var in .zprofile
+  :config (exec-path-from-shell-initialize))
 
 (use-package which-key
   :config
@@ -458,6 +460,7 @@ or tls config."
 	      ("M-p" . flymake-goto-prev-error)))
 
 (use-package avy
+  :defer t
   :functions (avy-setup-default
 	      avy-goto-char
 	      avy-goto-line)
@@ -567,6 +570,7 @@ or tls config."
   (global-hl-todo-mode 1))
 
 (use-package magit
+  :defer t
   :defines magit-define-global-key-bindings
   :config
   (setq magit-define-global-key-bindings 'recommended))
@@ -629,7 +633,8 @@ or tls config."
 
 (use-package yasnippet-snippets)
 
-(use-package pyvenv)
+(use-package pyvenv
+  :defer t)
 
 (use-package tramp
   :functions (tramp-enable-method)
@@ -657,28 +662,28 @@ or tls config."
   (add-hook 'completion-at-point-functions #'cape-file)
   (add-hook 'completion-at-point-functions #'cape-elisp-block))
 
-;;; Langauge/IDE setup
-(use-package reformatter)
-(use-package zig-mode
-  :after reformatter)
+(use-package markdown-mode
+  :defer t)
 
-(use-package haskell-mode)
+;;; Langauge/IDE setup
+(use-package reformatter
+  :defer t)
+(use-package zig-mode
+  :after reformatter
+  :defer t)
+
+(use-package haskell-mode
+  :defer t)
 
 (use-package nix-mode
-  :mode "\\.nix\\'")
+  :defer t
+  :mode "\\.nix\\'"
+  :hook (nix-mode . eglot-ensure))
 
 (use-package envrc
-  :if (string-equal (system-name) "george-nixos")
+  :if (or (string-equal (system-name) "george-nixos")
+	  (string= system-type "darwin"))
   :hook (after-init . envrc-global-mode))
-
-(use-package lsp-mode
-  :defines (lsp-keymap-prefix)
-  :functions (lsp-which-key-integration)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :bind (("C-c l l" . lsp))
-  :hook ((lsp-mode . lsp-which-key-integration))
-  :commands lsp)
 
 (use-package eglot
   :straight nil
@@ -715,6 +720,7 @@ or tls config."
   :hook (eglot-managed-mode . me/eglot-setup))
 
 (use-package eldoc
+  :defer t
   :straight nil
   :bind ("C-c e d" . eldoc-doc-buffer)
   :config
@@ -781,8 +787,10 @@ or tls config."
 
 
 ;; Org-mode setup
-(require 'org)
-(with-eval-after-load 'org
+(use-package org
+  :defer t
+  :straight nil
+  :config
   (org-babel-do-load-languages
    'org-babel-load-languages '((shell . t) (js . t) (python . t) (plantuml . t)))
 
@@ -792,8 +800,10 @@ or tls config."
   (add-hook 'org-babel-after-execute-hook
             (lambda () (when org-inline-image-overlays (org-redisplay-inline-images)))))
 
-(require 'ob-plantuml)
-(with-eval-after-load 'ob-plantuml
+(use-package ob-plantuml
+  :defer t
+  :straight nil
+  :config
   (setq org-plantuml-exec-mode 'plantuml
 	org-plantuml-args '("-headless" "-utxt")))
 
