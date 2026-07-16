@@ -13,3 +13,5 @@ tree-sitter/
 /url/
 gpt_token
 straight/
+.direnv/
+eshell/

@@ -193,8 +193,8 @@ or tls config."
    ((string= (system-name) "george-nixos")
     (make-me/config
      :theme-type 'light
-     ;; :dark-themes '(doom-monokai-pro)
-     ;; :light-themes '(doom-flatwhite)
+     :dark-themes '(doom-snazzy)
+     :light-themes '(georgiboy-light)
      :font-spec (font-spec :family "IBM Plex Mono"
 			   :size 22
 			   :weight 'semi-bold)))
