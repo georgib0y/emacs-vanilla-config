@@ -142,6 +142,8 @@ or tls config."
 	    (list "deno" "lsp" :initializationOptions (list :enable t))
 	  (list "typescript-language-server" "--stdio"))))))
 
+
+
 ;;; System specific config
 (cl-defstruct me/config
   "A collection of variables that could change based on the computer/system I'm on."
@@ -151,18 +153,52 @@ or tls config."
   (ruler-col 80 :type number)
   (font-spec (font-spec) :type object :documentation "a font spec")
   (ruler-char 9474 :type number :documentation "what char to use as the ruler, 124 is also good")
-  (light-themes '(doom-feather-light
+  (light-themes '(leuven
+		  default
+		  dichromacy
+		  tsdh-light
+		  whiteboard
 		  doom-flatwhite
-		  doom-oksolar-light
 		  doom-one-light
-		  doom-opera-light
-		  doom-solarized-light
-		  doom-tomorrow-day
-		  doom-winter-is-coming-light
+		  modus-operandi
+		  doom-nord-light
+		  doom-acario-light
 		  modus-operandi-tinted
-		  tsdh-light)
+		  doom-feather-light)
+
 		:type list)
-  (dark-themes '(doom-xcode doom-badger doom-challenger-deep doom-miramare doom-rouge)
+  (dark-themes '(wombat
+		 doom-one
+		 doom-1337
+		 doom-dark+
+		 doom-henna
+		 doom-rouge
+		 doom-xcode
+		 manjo-dark
+		 doom-badger
+		 doom-snazzy
+		 leuven-dark
+		 doom-Iosvkem
+		 doom-dracula
+		 doom-horizon
+		 doom-molokai
+		 doom-ir-black
+		 doom-old-hope
+		 modus-vivendi
+		 doom-acario-dark
+		 doom-monokai-pro
+		 doom-wilmersdorf
+		 doom-homage-black
+		 doom-oceanic-next
+		 doom-material-dark
+		 doom-tomorrow-night
+		 doom-monokai-classic
+		 doom-monokai-machine
+		 doom-outrun-electric
+		 modus-vivendi-tinted
+		 modus-vivendi-tritanopia
+		 modus-vivendi-deuteranopia
+		 doom-solarized-dark-high-contrast)
 	       :type list)
   (theme-type 'dark :type symbol
 	      :documentation "either `dark' or `light'. nil disable themes")
@@ -190,14 +226,14 @@ or tls config."
 
 (defvar me/curr-config
   (cond
-   ((string= (system-name) "george-nixos")
+   ((string= (system-name) "george-fedora")
     (make-me/config
      :theme-type 'light
-     :dark-themes '(doom-snazzy)
-     :light-themes '(georgiboy-light)
+     ;; :dark-themes '(doom-solarized-dark-high-contrast)
+     ;; :light-themes '(doom-solarized-light)
      :font-spec (font-spec :family "IBM Plex Mono"
-			   :size 22
-			   :weight 'semi-bold)))
+			   :size 18
+			   :weight 'medium)))
 
    
    ((string= (system-name) "george-thinkpad")
@@ -230,9 +266,11 @@ or tls config."
 (set-register ?c `(file . ,user-init-file))
 (set-register ?b '(file . "~/.bashrc"))
 (set-register ?z '(file . "~/.zshrc"))
+(set-register ?f '(file . "~/.config/fish/config.fish"))
+(set-register ?s '(file . "~/.config/sway/config"))
+(set-register ?h '(file . "~/.config/hypr/hyprland.lua"))
 (set-register ?p '(file . "~/.profile"))
-(set-register ?h '(file . "~/.config/home-manager/home.nix"))
-(set-register ?n '(file . "/sudo::/etc/nixos/configuration.nix"))
+(set-register ?d '(file . "~/Documents/Documentation.org"))
 
 (defun me/curr-theme-list ()
   "Return the current theme list for `me/curr-config' or nil if disabled."
@@ -431,10 +469,10 @@ or tls config."
   (ns-function-modifier 'none)
   (ns-command-modifier 'meta)
   :config
+  (setq auth-sources '("~/.authinfo.gpg"))
   (setq password-cache-expiry 3600)) ;; timeout of 1hr
-  
+
 (use-package exec-path-from-shell
-  :if (string= system-type "darwin") ;; only needed on macOS
   :functions (exec-path-from-shell-initialize)
   :defines (exec-path-from-shell-shell-name)
   :init
@@ -672,20 +710,17 @@ or tls config."
   :after reformatter
   :defer t)
 
+(use-package fish-mode
+  :defer t)
+
 (use-package haskell-mode
   :defer t)
 
-(use-package nix-mode
-  :defer t
-  :mode "\\.nix\\'"
-  :hook (nix-mode . eglot-ensure))
+(use-package rust-mode
+  :defer t)
 
-(use-package envrc
-  :if (or (string-equal (system-name) "george-nixos")
-	  (string= system-type "darwin"))
-  :hook (after-init . envrc-global-mode)
-  :bind (("C-c n a" . envrc-allow)
-	 ("C-c n r" . envrc-reload)))
+(use-package lua-mode
+  :defer t)
 
 (use-package eglot
   :straight nil
