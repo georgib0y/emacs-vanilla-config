@@ -128,18 +128,14 @@
   (font-spec (font-spec) :type object :documentation "a font spec")
   (ruler-char 9474 :type number :documentation "what char to use as the ruler, 124 is also good")
   (light-themes '(leuven
-		  default
 		  dichromacy
-		  tsdh-light
 		  whiteboard
 		  doom-flatwhite
 		  doom-one-light
 		  modus-operandi
 		  doom-nord-light
 		  doom-acario-light
-		  modus-operandi-tinted
-		  doom-feather-light)
-
+		  modus-operandi-tinted)
 		:type list)
   (dark-themes '(wombat
 		 doom-one
@@ -148,7 +144,7 @@
 		 doom-henna
 		 doom-rouge
 		 doom-xcode
-		 manjo-dark
+		 manoj-dark
 		 doom-badger
 		 doom-snazzy
 		 leuven-dark
@@ -182,8 +178,10 @@
 
   (csharp-lsp '("csharp-ls" "--log-level debug") :type eglot-server)
   (go-lsp '("gopls" "-remote=auto") :type eglot-server)
-  (haskell-lsp '("haskell-language-server-wrapper" "--lsp") :type eglot-server)
-  (java-lsp `(,(file-name-concat user-emacs-directory "jdtls-1.45.0" "bin" "jdtls")
+  (haskell-lsp '("haskell-language-server-wrapper" "--lsp"
+		 :initializationOptions (:sessionLoading "singleComponent"))
+	       :type eglot-server)
+  (java-lsp `("jdtls"
 	      :initializationOptions (:hints nil))
 	    :type eglot-server)
   (js-lsp #'me/choose-js-lsp-server-program :type eglot-server)
@@ -209,21 +207,13 @@
 			   :size 18
 			   :weight 'medium)))
 
-   
-   ((string= (system-name) "george-thinkpad")
-    (make-me/config
-     :font-spec (font-spec :size 16)))
-   
    ((string= system-type "darwin")
     (make-me/config
      :font-spec (font-spec :family "IBM Plex Mono Medium"
-			   :size 18
-			   :weight 'medium)
+			   :size 17
+			   :weight 'regular)
      :enable-menu-bar t
      :theme-type 'light
-     ;; :shell "/opt/homebrew/bin/fish"
-     :dark-themes '(doom-solarized-dark-high-contrast)
-     :light-themes '(modus-operandi-tinted)
      :setup-fn #'me/macbook-setup))
 
    ((string= (system-name) "SHCS-PC77")
@@ -268,6 +258,9 @@
 	   ("C-c C-d" . duplicate-line)
 	   ("C-c l" . me/toggle-dark-themes)
 	   ("C-c t" . me/create-tmp-file)
+	   ("C-c n" . me/create-tmp-file)
+	   ("C-c C-n" . next-buffer)
+	   ("C-c C-p" . previous-buffer)
 	   ("C-M-h" . backward-kill-word)))
 	    
   (keymap-set me/keybinds-mode-map (car keybind) (cdr keybind)))
@@ -594,8 +587,8 @@ or tls config."
   (setq register-preview-delay 0.5)
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref)
-  :config
   (setq completion-in-region-function #'consult-completion-in-region)
+  :config
   (consult-customize
    consult-theme :preview-key '(:debounce 0.2 any)
    consult-ripgrep consult-git-grep consult-grep consult-man
@@ -663,10 +656,10 @@ or tls config."
 	(setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'dark))
     (message "Toggling light themes")
     (setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'light))
-  (me/pick-random-theme))
+  (me/pick-random-theme)))
 
-  (when (me/config-theme-type me/curr-config)
-    (me/pick-random-theme)))
+(when (me/config-theme-type me/curr-config)
+  (me/pick-random-theme))
 
 (use-package yasnippet
   :functions yas-global-mode
@@ -825,6 +818,12 @@ or tls config."
       (mapc (lambda (auto) (add-to-list 'auto-mode-alist auto))
 	    auto-modes)))
 
+
+(use-package flyspell
+  :defer t
+  :straight nil
+  :hook ((markdown-mode . flyspell-mode)
+	 (org-mode . flyspell-mode)))
 
 ;; Org-mode setup
 (use-package org

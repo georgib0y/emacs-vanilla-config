@@ -16,3 +16,5 @@ straight/
 .direnv/
 eshell/
 \#!*
+.DS_Store
+.org-id-locations
