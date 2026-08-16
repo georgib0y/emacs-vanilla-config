@@ -117,32 +117,6 @@
     (kill-new path)
     (message "Opened file at: %s" path)))
 
-(with-eval-after-load 'project
-  (defun me/choose-js-lsp-server-program (_int project)
-    "Determine whether `PROJECT' is a deno project and return either deno lsp
-or tls config."
-    (when project
-      (let*
-	  ((root-dir-name (directory-file-name (file-truename (project-root project))))
-	   (root-files
-	    (seq-filter
-	     (lambda
-	       (file)
-	       (progn
-		 (let ((file-dir (directory-file-name
-				  (file-truename (file-name-directory file)))))
-		   (message "testing filter on: %s\n\tfile dir:\t%s\n\troot dir:\t%s"
-			    file file-dir root-dir-name)
-		   (string= file-dir root-dir-name))))
-	     (project-files project)))
-	   (root-file-names (mapcar #'file-name-nondirectory root-files)))
-	(message "root dir is: %s" root-dir-name)
-	(dolist (f root-file-names) (message "is root file: %s" f))
-	(if (cl-find-if (lambda (filename) (string= filename "deno.json")) root-file-names)
-	    (list "deno" "lsp" :initializationOptions (list :enable t))
-	  (list "typescript-language-server" "--stdio"))))))
-
-
 
 ;;; System specific config
 (cl-defstruct me/config
@@ -220,8 +194,9 @@ or tls config."
 
 (defun me/macbook-setup ()
   "Setup function to run on macOS."
+  (defvar ns-auto-hide-menu-bar)
   (setq frame-resize-pixelwise t
-	ns-auto-hide-menu-bar 'nil))
+	ns-auto-hide-menu-bar nil))
 
 (defvar me/curr-config
   (cond
@@ -470,6 +445,36 @@ or tls config."
   :config
   (setq auth-sources '("~/.authinfo.gpg"))
   (setq password-cache-expiry 3600)) ;; timeout of 1hr
+
+
+(use-package project
+  :config
+  (defun me/choose-js-lsp-server-program (_int project)
+    "Determine whether `PROJECT' is a deno project and return either deno lsp
+or tls config."
+    (when project
+      (let*
+	  ((root-dir-name (directory-file-name (file-truename (project-root project))))
+	   (root-files
+	    (seq-filter
+	     (lambda
+	       (file)
+	       (progn
+		 (let ((file-dir (directory-file-name
+				  (file-truename (file-name-directory file)))))
+		   (message "testing filter on: %s\n\tfile dir:\t%s\n\troot dir:\t%s"
+			    file file-dir root-dir-name)
+		   (string= file-dir root-dir-name))))
+	     (project-files project)))
+	   (root-file-names (mapcar #'file-name-nondirectory root-files)))
+	(message "root dir is: %s" root-dir-name)
+	(dolist (f root-file-names) (message "is root file: %s" f))
+	(if (cl-find-if (lambda (filename) (string= filename "deno.json")) root-file-names)
+	    (list "deno" "lsp" :initializationOptions (list :enable t))
+	  (list "typescript-language-server" "--stdio"))))))
+
+
+
 
 (use-package exec-path-from-shell
   :functions (exec-path-from-shell-initialize)
