@@ -216,8 +216,7 @@ or tls config."
   (rust-lsp '("rust-analyzer") :type eglot-server)
   (swift-lsp '("sourcekit-lsp") :type eglot-server)
   (python-lsp '("pylsp") :type eglot-server)
-  (zig-lsp '("zls") :type eglot-server)
-  (nix-lsp '("nixd") :type eglot-server))
+  (zig-lsp '("zls") :type eglot-server))
 
 (defun me/macbook-setup ()
   "Setup function to run on macOS."
@@ -742,8 +741,7 @@ or tls config."
      ((rust-ts-mode rust-mode) . ,(me/config-rust-lsp me/curr-config))
      ((swift-mode swift-ts-mode) . ,(me/config-swift-lsp me/curr-config))
      ((python-mode python-ts-mode) . ,(me/config-python-lsp me/curr-config))
-     (zig-mode . ,(me/config-zig-lsp me/curr-config))
-     (nix-mode . ,(me/config-nix-lsp me/curr-config))))
+     (zig-mode . ,(me/config-zig-lsp me/curr-config))))
 
   (defun me/format-on-save-when-eglot-managed ()
     "To be called from `before-save-hook'."
