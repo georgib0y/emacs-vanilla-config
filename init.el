@@ -719,6 +719,9 @@ or tls config."
 (use-package lua-mode
   :defer t)
 
+(use-package yaml-mode
+  :defer t)
+
 (use-package eglot
   :straight nil
   :init
