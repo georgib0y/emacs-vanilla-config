@@ -135,7 +135,13 @@
 		  modus-operandi
 		  doom-nord-light
 		  doom-acario-light
-		  modus-operandi-tinted)
+		  modus-operandi-tinted
+		  ef-day
+		  ef-light
+		  ef-kassio
+		  ef-duo-light
+		  ef-tritanopia-light
+		  ef-deuteranopia-light)
 		:type list)
   (dark-themes '(wombat
 		 doom-one
@@ -168,7 +174,15 @@
 		 modus-vivendi-tinted
 		 modus-vivendi-tritanopia
 		 modus-vivendi-deuteranopia
-		 doom-solarized-dark-high-contrast)
+		 doom-solarized-dark-high-contrast
+		 ef-owl
+		 ef-dark
+		 ef-rosa
+		 ef-dream
+		 ef-duo-dark
+		 ef-elea-dark
+		 ef-tritanopia-dark
+		 )
 	       :type list)
   (theme-type 'dark :type symbol
 	      :documentation "either `dark' or `light'. nil disable themes")
@@ -248,6 +262,42 @@
 
 (when (me/config-setup-fn me/curr-config)
   (funcall (me/config-setup-fn me/curr-config)))
+
+(defun me/pick-random-theme ()
+  "Load a random theme from `me/curr-config' depending on `theme-type'."
+  (interactive)
+
+  (let* ((themes (me/curr-theme-list))
+	 (len (length themes))
+	 (curr (car custom-enabled-themes))
+	 (type (symbol-name (me/config-theme-type me/curr-config))))
+    (cond
+     ((eq len 0) (message "No %s themes selected" type))
+     ((eq len 1)
+      (message "Only 1 %s theme selected" type)
+      (load-theme (car themes) t)
+      (disable-theme curr))
+     ;; make sure to not set the theme to the same thing
+     (t (let ((theme (me/pick-rand themes)))
+	  (while (eq curr theme)
+	    (setq theme (me/pick-rand themes)))
+	  (load-theme theme t)
+	  (sleep-for 0.1) ;; sleep for a small amount of time to stop flickering when changing theme
+	  (disable-theme curr)
+	  (when (called-interactively-p 'interactive)
+	    (message "Loaded %s theme" theme)))))))
+
+(defun me/toggle-dark-themes ()
+  "Toggle dark themes."
+  (interactive)
+  (if (eq (me/config-theme-type me/curr-config) 'light)
+      (progn
+	(message "Toggling dark themes")
+	(setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'dark))
+    (message "Toggling light themes")
+    (setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'light))
+  (me/pick-random-theme))
+
 
 ;; Keybinds
 (define-key key-translation-map (kbd "C-h") (kbd "<DEL>"))
@@ -621,42 +671,23 @@ or tls config."
   (setq doom-themes-enable-bold t
 	doom-themes-enable-italic t)
   (doom-themes-visual-bell-config)
-  (doom-themes-org-config)
+  (doom-themes-org-config))
 
-  (defun me/pick-random-theme ()
-    "Load a random theme from `me/curr-config' depending on `theme-type'."
-    (interactive)
+(use-package modus-themes)
 
-    (let* ((themes (me/curr-theme-list))
-	   (len (length themes))
-	   (curr (car custom-enabled-themes))
-	   (type (symbol-name (me/config-theme-type me/curr-config))))
-      (cond
-       ((eq len 0) (message "No %s themes selected" type))
-       ((eq len 1)
-	(message "Only 1 %s theme selected" type)
-	(load-theme (car themes) t)
-	(disable-theme curr))
-       ;; make sure to not set the theme to the same thing
-       (t (let ((theme (me/pick-rand themes)))
-	    (while (eq curr theme)
-	      (setq theme (me/pick-rand themes)))
-	    (load-theme theme t)
-	    (sleep-for 0.1) ;; sleep for a small amount of time to stop flickering when changing theme
-	    (disable-theme curr)
-	    (when (called-interactively-p 'interactive)
-	      (message "Loaded %s theme" theme)))))))
-
-  (defun me/toggle-dark-themes ()
-  "Toggle dark themes."
-  (interactive)
-  (if (eq (me/config-theme-type me/curr-config) 'light)
-      (progn
-	(message "Toggling dark themes")
-	(setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'dark))
-    (message "Toggling light themes")
-    (setf (cl-struct-slot-value 'me/config 'theme-type me/curr-config) 'light))
-  (me/pick-random-theme)))
+(use-package ef-themes
+  :after modus-themes
+  :defines (modus-themes-mixed-fonts
+	    modus-themes-italic-constructs)
+  :functions (ef-themes-take-over-modus-themes-mode
+	      modus-themes-load-random-dark
+	      modus-themes-load-random-light)
+  :init (ef-themes-take-over-modus-themes-mode 1)
+  :bind (("C-c C-l l" . modus-themes-load-random-light)
+	 ("C-c C-l d" . modus-themes-load-random-dark))
+  :config
+  (setq modus-themes-mixed-fonts t
+	modus-themes-italic-constructs t))
 
 (when (me/config-theme-type me/curr-config)
   (me/pick-random-theme))
@@ -720,7 +751,8 @@ or tls config."
   :defer t)
 
 (use-package yaml-mode
-  :defer t)
+  :defer t
+  :mode "\\.ya?ml\\'")
 
 (use-package eglot
   :straight nil
@@ -803,7 +835,8 @@ or tls config."
 		  (mhtml-mode . html-ts-mode)
 		  (java-mode . java-ts-mode)
 		  (conf-toml-mode . toml-ts-mode)
-		  (python-mode . python-ts-mode))))
+		  (python-mode . python-ts-mode)
+		  (yaml-mode . yaml-ts-mode))))
 
     (mapc (lambda (remap) (add-to-list 'major-mode-remap-alist remap))
 	  remaps))
@@ -813,7 +846,7 @@ or tls config."
 			("\\.go\\'" . go-ts-mode)
 			("\\.tsx?\\'" . typescript-ts-mode)
 			("\\.rs\\'" . rust-ts-mode)
-			("\\.ya?ml\\'" . yaml-ts-mode)
+			;; ("\\.ya?ml\\'" . yaml-ts-mode)
 			("\\.jsonc?\\'" . json-ts-mode)
 			("Dockerfile" . dockerfile-ts-mode)
 			("Containerfile" . dockerfile-ts-mode))))
