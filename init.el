@@ -26,13 +26,6 @@
       (set alist (delq val (eval alist)))
       (setq val (assoc key (eval alist))))))
 
-(defun me/reload-file ()
-  "Reload a file."
-  (interactive)
-  (let ((pos (point)))
-    (find-alternate-file buffer-file-name)
-    (goto-char pos)))
-
 (defun me/leave-msg (msg)
   "Create a function that rings the bell, print why with `MSG'."
   `(lambda ()
@@ -215,8 +208,8 @@
    ((string= (system-name) "george-fedora")
     (make-me/config
      :theme-type 'light
-     ;; :dark-themes '(doom-solarized-dark-high-contrast)
-     ;; :light-themes '(doom-solarized-light)
+     :dark-themes '(ef-cherie)
+     :light-themes '(ef-arbutus)
      :font-spec (font-spec :family "IBM Plex Mono"
 			   :size 18
 			   :weight 'medium)))
@@ -835,15 +828,14 @@ or tls config."
 		  (mhtml-mode . html-ts-mode)
 		  (java-mode . java-ts-mode)
 		  (conf-toml-mode . toml-ts-mode)
-		  (python-mode . python-ts-mode)
-		  (yaml-mode . yaml-ts-mode))))
+		  (python-mode . python-ts-mode))))
+		  ;; (yaml-mode . yaml-ts-mode))))
 
     (mapc (lambda (remap) (add-to-list 'major-mode-remap-alist remap))
 	  remaps))
 
     (let ((auto-modes '(("\\.go\\'" . go-ts-mode)
 			("go\\.mod\\'" . go-ts-mode)
-			("\\.go\\'" . go-ts-mode)
 			("\\.tsx?\\'" . typescript-ts-mode)
 			("\\.rs\\'" . rust-ts-mode)
 			;; ("\\.ya?ml\\'" . yaml-ts-mode)
@@ -884,4 +876,4 @@ or tls config."
 
 (provide 'init)
 ;;; init.el ends here
-	
+
