@@ -227,7 +227,9 @@
 	 (string= system-type "windows-nt"))
     (make-me/config
      :tmp-dir (file-name-concat user-emacs-directory "tmp")
-     :font-spec (font-spec :size 16)
+     :font-spec (font-spec :family "Consolas"
+			   :size 14)
+     :tmp-dir (file-name-concat user-emacs-directory "tmp")
      :theme-type 'light
      :dark-themes '(ef-cherie)
      :light-themes '(ef-arbutus)
@@ -428,6 +430,9 @@
 
 ;; disable the complicated funcions disabler - I'm a big boy now
 (setq disabled-command-function nil)
+
+(if (daemonp)
+    (add-hook 'server-after-make-frame-hook #'me/set-frame-font))
 
 ;;; Bootstrap Straight
 (defvar straight-use-package-by-default t)
@@ -753,6 +758,20 @@ or tls config."
 
 (use-package rust-mode
   :defer t)
+
+(use-package powershell
+  :defer t
+  :mode (("\\.ps1\\'"  . powershell-mode)
+         ("\\.psm1\\'" . powershell-mode)
+         ("\\.psd1\\'" . powershell-mode))
+  :custom
+  (powershell-indent 2)
+  (powershell-continuation-indent 2))
+
+(use-package nix-mode
+  :defer t
+  :mode "\\.nix\\'"
+  :hook (nix-mode . eglot-ensure))
 
 (use-package lua-mode
   :defer t)
