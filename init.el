@@ -223,11 +223,25 @@
      :theme-type 'light
      :setup-fn #'me/macbook-setup))
 
-   ((string= (system-name) "SHCS-PC77")
+   ((and (string= (system-name) "SHCS-PC77")
+	 (string= system-type "windows-nt"))
     (make-me/config
      :tmp-dir (file-name-concat user-emacs-directory "tmp")
-     :font-spec (font-spec :size 18)
+     :font-spec (font-spec :size 16)
      :theme-type 'light
+     :dark-themes '(ef-cherie)
+     :light-themes '(ef-arbutus)
+     :enable-treesitter nil
+     :python-lsp '("pyright-langserver" "--stdio")))
+
+   ((and (string= (system-name) "SHCS-PC77")
+	 (string= system-type "gnu/linux"))
+    (make-me/config
+     :tmp-dir (file-name-concat user-emacs-directory "tmp")
+     :font-spec (font-spec :size 16)
+     :theme-type 'light
+     :dark-themes '(ef-cherie)
+     :light-themes '(ef-arbutus)
      :enable-treesitter nil
      :python-lsp '("pyright-langserver" "--stdio")))
    
