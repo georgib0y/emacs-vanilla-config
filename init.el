@@ -203,6 +203,13 @@
   (setq frame-resize-pixelwise t
 	ns-auto-hide-menu-bar nil))
 
+(defun me/wsl-setup ()
+  "Setup function for WSL."
+  (setq select-active-regions nil
+	select-enable-clipboard t
+	select-enable-primary nil
+	interprogram-cut-function #'gui-select-text))
+
 (defvar me/curr-config
   (cond
    ((string= (system-name) "george-fedora")
@@ -240,12 +247,14 @@
 	 (string= system-type "gnu/linux"))
     (make-me/config
      :tmp-dir (file-name-concat user-emacs-directory "tmp")
-     :font-spec (font-spec :size 16)
+     :font-spec (font-spec :family "IBM Plex Mono"
+			   :size 14
+			   :weight 'medium)
      :theme-type 'light
      :dark-themes '(ef-cherie)
      :light-themes '(ef-arbutus)
      :enable-treesitter nil
-     :python-lsp '("pyright-langserver" "--stdio")))
+     :setup-fn #'me/wsl-setup))
    
    (t (make-me/config))))
 
