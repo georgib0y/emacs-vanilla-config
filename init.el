@@ -223,7 +223,7 @@
    ((string= system-type "darwin")
     (make-me/config
      :font-spec (font-spec :family "IBM Plex Mono Medium"
-			   :size 17
+			   :size 14
 			   :weight 'regular)
      :enable-menu-bar t
      :theme-type 'light
