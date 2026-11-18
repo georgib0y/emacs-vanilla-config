@@ -122,7 +122,6 @@
   (ruler-char 9474 :type number :documentation "what char to use as the ruler, 124 is also good")
   (light-themes '(leuven
 		  dichromacy
-		  whiteboard
 		  doom-flatwhite
 		  doom-one-light
 		  modus-operandi
@@ -215,10 +214,10 @@
    ((string= (system-name) "george-fedora")
     (make-me/config
      :theme-type 'light
-     :dark-themes '(ef-cherie)
+     :dark-themes '(ef-dream)
      :light-themes '(ef-arbutus)
      :font-spec (font-spec :family "IBM Plex Mono"
-			   :size 18
+			   :size 16
 			   :weight 'medium)))
 
    ((string= system-type "darwin")
@@ -795,7 +794,8 @@ or tls config."
   (require 'compile)
   :bind  (("C-c e e" . eglot)
 	  ("C-c e r" . eglot-rename)
-	  ("C-c e a" . eglot-code-actions))
+	  ("C-c e a" . eglot-code-actions)
+	  ("C-c e k" . eglot-shutdown-all))
   
   :config
   (setq
